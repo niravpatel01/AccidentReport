@@ -1,0 +1,542 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Create Accident Diagram";
+}
+
+<div class="editor-shell">
+    <section class="report-strip report-collapsed" id="reportStrip" aria-label="Accident report information">
+        <div class="report-strip-header">
+            <h3 class="report-strip-title">Accident Report Information</h3>
+            <button class="report-toggle-btn" id="toggleReportBtn" type="button" title="Toggle report form" aria-label="Toggle report form">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        <div class="report-content" id="reportContent">
+            <!-- Row 1: Report Info & Date/Time -->
+            <div class="report-row">
+                <div class="report-group">
+                    <div class="report-field">
+                        <label for="reportNumber">Report #</label>
+                        <input id="reportNumber" class="form-control form-control-sm" placeholder="e.g. AR-2026-001" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="accidentDate">Date</label>
+                        <input id="accidentDate" type="date" class="form-control form-control-sm" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="accidentTime">Time</label>
+                        <input id="accidentTime" type="time" class="form-control form-control-sm" />
+                    </div>
+                </div>
+                <div class="report-group">
+                    <div class="report-field report-field-sm">
+                        <label for="route">Route</label>
+                        <input id="route" class="form-control form-control-sm" maxlength="30" placeholder="e.g. 101" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="run">Run</label>
+                        <input id="run" class="form-control form-control-sm" maxlength="30" placeholder="e.g. AM-5" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="busVehicleNumber">Bus/VH#</label>
+                        <input id="busVehicleNumber" class="form-control form-control-sm" maxlength="30" placeholder="e.g. 1234" />
+                    </div>
+                </div>
+                <div class="report-group report-group-grow">
+                    <div class="report-field report-field-grow">
+                        <label for="location">Location</label>
+                        <input id="location" class="form-control form-control-sm" placeholder="Street, intersection, city" />
+                    </div>
+                </div>
+            </div>
+            <!-- Row 2: People -->
+            <div class="report-row">
+                <div class="report-group">
+                    <div class="report-field">
+                        <label for="operatorEmployee">Operator/Employee</label>
+                        <input id="operatorEmployee" class="form-control form-control-sm" maxlength="60" placeholder="Full name" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="operatorPassPrNumber">Pass/PR#</label>
+                        <input id="operatorPassPrNumber" class="form-control form-control-sm" maxlength="30" placeholder="e.g. 12345" aria-describedby="operatorPassHelp" />
+                        <span id="operatorPassHelp" class="visually-hidden">Pass or PR number for Operator/Employee</span>
+                    </div>
+                </div>
+                <div class="report-group">
+                    <div class="report-field">
+                        <label for="sldManager">SLD/Manager</label>
+                        <input id="sldManager" class="form-control form-control-sm" maxlength="60" placeholder="Full name" />
+                    </div>
+                    <div class="report-field report-field-sm">
+                        <label for="managerPassPrNumber">Pass/PR#</label>
+                        <input id="managerPassPrNumber" class="form-control form-control-sm" maxlength="30" placeholder="e.g. 12345" aria-describedby="managerPassHelp" />
+                        <span id="managerPassHelp" class="visually-hidden">Pass or PR number for SLD/Manager</span>
+                    </div>
+                </div>
+                <div class="report-group">
+                    <div class="report-field">
+                        <label for="preparedBy">Prepared by</label>
+                        <input id="preparedBy" class="form-control form-control-sm" placeholder="Officer or reporter" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="toolbar" aria-label="Diagram tools">
+            <div class="toolbar-group toolbar-theme">
+                <label for="sceneTheme"><i class="bi bi-palette" aria-hidden="true"></i><span> Theme</span></label>
+                <select id="sceneTheme" class="form-select form-select-sm" aria-label="Diagram theme">
+                    <option value="color" selected>Full Color</option>
+                    <option value="monochrome">Monochrome</option>
+                </select>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group">
+                <button id="newBtn" class="tool-btn" type="button" title="New diagram"><i class="bi bi-file-earmark"></i><span>New</span></button>
+                <button id="templateBtn" class="tool-btn" type="button" title="Start from a common crash template"><i class="bi bi-layout-text-window-reverse"></i><span>Templates</span></button>
+                <button id="undoBtn" class="tool-btn" type="button" title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i><span>Undo</span></button>
+                <button id="redoBtn" class="tool-btn" type="button" title="Redo (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i><span>Redo</span></button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group">
+                <button id="selectBtn" class="tool-btn active" type="button" title="Select objects"><i class="bi bi-cursor"></i><span>Select</span></button>
+                <button id="selectAllBtn" class="tool-btn" type="button" title="Select all diagram objects (Ctrl+A)"><i class="bi bi-bounding-box"></i><span>Select All</span></button>
+                <button id="drawBtn" class="tool-btn" type="button" title="Draw freehand"><i class="bi bi-pencil"></i><span>Draw</span></button>
+                <button id="lineBtn" class="tool-btn" type="button" title="Draw a straight line"><i class="bi bi-slash-lg"></i><span>Line</span></button>
+                <button id="measureBtn" class="tool-btn" type="button" title="Draw a distance measurement" aria-label="Draw a distance measurement">
+                    <i class="bi bi-rulers">
+                        <span style="font-size: 11px;
+                        padding-left: 10px;
+                        font-weight: 600;
+                        font-style: normal;
+                        ">Measurement</span>
+                    </i>
+                </button>
+                <button id="addTextBtn" class="tool-btn" type="button" title="Add text"><i class="bi bi-fonts"></i><span>Text</span></button>
+                <button id="deleteBtn" class="tool-btn danger" type="button" title="Delete selected (Delete)"><i class="bi bi-trash3"></i><span>Delete</span></button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group zoom-group">
+                <button id="zoomOutBtn" class="icon-btn" type="button" title="Zoom out"><i class="bi bi-dash-lg"></i></button>
+                <span id="zoomLabel" class="zoom-label">100%</span>
+                <button id="zoomInBtn" class="icon-btn" type="button" title="Zoom in"><i class="bi bi-plus-lg"></i></button>
+                <button id="zoomResetBtn" class="icon-btn" type="button" title="Reset zoom"><i class="bi bi-aspect-ratio"></i></button>
+            </div>
+            <div class="toolbar-spacer"></div>
+        </section>
+
+        <div class="workspace-grid" id="workspaceGrid">
+            <aside class="toolbox-panel panel-card" id="toolboxPanel" aria-label="Scene object toolbox">
+                <div class="panel-heading">
+                    <div>
+                        <h2>Scene objects</h2>
+                        <p>Drag or click an item</p>
+                    </div>
+                    <button class="panel-toggle-btn" id="collapseToolboxBtn" title="Collapse toolbox" aria-label="Collapse toolbox panel">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </button>
+                </div>
+                <div class="toolbox-search">
+                    <i class="bi bi-search"></i>
+                    <input id="assetSearch" type="search" placeholder="Search objects" aria-label="Search scene objects" />
+                </div>
+
+                <div class="asset-section">
+                    <h3>Roads</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="road-horizontal" data-name="Straight road" type="button"><span class="asset-preview road-preview horizontal"></span><span>Straight</span></button>
+                        <button class="asset-item" draggable="true" data-asset="road-vertical" data-name="Vertical road" type="button"><span class="asset-preview road-preview vertical"></span><span>Vertical</span></button>
+                        <button class="asset-item" draggable="true" data-asset="l-road" data-name="L-shaped road" type="button"><span class="asset-preview l-road-preview"></span><span>L-Road</span></button>
+                        <button class="asset-item" draggable="true" data-asset="intersection" data-name="Intersection" type="button"><span class="asset-preview intersection-preview"></span><span>Intersection</span></button>
+                        <button class="asset-item" draggable="true" data-asset="t-junction" data-name="T-Intersection road" type="button"><span class="asset-preview t-junction-preview"></span><span>T-Intersection</span></button>
+                        <button class="asset-item" draggable="true" data-asset="crosswalk" data-name="Crosswalk" type="button"><span class="asset-preview crosswalk-preview"></span><span>Crosswalk</span></button>
+                        <button class="asset-item" draggable="true" data-asset="four-way-crosswalk" data-name="Four-Way Crosswalk" type="button"><span class="asset-preview four-way-crosswalk-preview"></span><span>4-Way Crosswalk</span></button>
+                        <button class="asset-item" draggable="true" data-asset="stop-line" data-name="Stop line" type="button"><span class="asset-preview stop-line-preview"></span><span>Stop line</span></button>
+                        <button class="asset-item" draggable="true" data-asset="sidewalk" data-name="Sidewalk" type="button"><i class="bi bi-bricks asset-icon"></i><span>Sidewalk</span></button>
+                        <button class="asset-item" draggable="true" data-asset="driveway" data-name="Driveway" type="button"><i class="bi bi-sign-turn-slight-right asset-icon"></i><span>Driveway</span></button>
+                        <button class="asset-item" draggable="true" data-asset="solid-line" data-name="Solid Road Line" type="button"><span class="asset-preview solid-line-preview"></span><span>Solid Line</span></button>
+                        <button class="asset-item" draggable="true" data-asset="dashed-line" data-name="Dashed Road Line" type="button"><span class="asset-preview dashed-line-preview"></span><span>Dashed Line</span></button>
+                        <button class="asset-item" draggable="true" data-asset="turn-lane" data-name="Right Turn Lane" type="button"><i class="bi bi-sign-turn-right-fill asset-icon"></i><span>Turn Lane</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Vehicles</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="car" data-name="Car" type="button"><i class="bi bi-car-front-fill asset-icon car-blue"></i><span>Car</span></button>
+                        <button class="asset-item" draggable="true" data-asset="truck" data-name="Truck" type="button"><i class="bi bi-truck asset-icon car-green"></i><span>Truck</span></button>
+                        <button class="asset-item" draggable="true" data-asset="motorcycle" data-name="Motorcycle" type="button"><i class="bi bi-bicycle asset-icon car-red"></i><span>Motorcycle</span></button>
+                        <button class="asset-item" draggable="true" data-asset="bus" data-name="Bus" type="button"><i class="bi bi-bus-front-fill asset-icon warning-icon"></i><span>Bus</span></button>
+                        <button class="asset-item" draggable="true" data-asset="paratransit" data-name="NYC Access-A-Ride Paratransit Vehicle" type="button"><i class="bi bi-universal-access-circle asset-icon car-blue"></i><span>Paratransit</span></button>
+                        <button class="asset-item" draggable="true" data-asset="bicycle" data-name="Bicycle" type="button"><i class="bi bi-bicycle asset-icon car-blue"></i><span>Bicycle</span></button>
+                        <button class="asset-item" draggable="true" data-asset="police-car" data-name="Police Car" type="button"><i class="bi bi-car-front-fill asset-icon car-blue"></i><span>Police</span></button>
+                        <button class="asset-item" draggable="true" data-asset="ambulance" data-name="Ambulance" type="button"><i class="bi bi-truck-front-fill asset-icon car-red"></i><span>Ambulance</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Signs and signals</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="stop-sign" data-name="Stop sign" type="button"><span class="asset-emoji">🛑</span><span>Stop</span></button>
+                        <button class="asset-item" draggable="true" data-asset="traffic-light" data-name="Traffic light" type="button"><span class="asset-emoji">🚦</span><span>Signal</span></button>
+                        <button class="asset-item" draggable="true" data-asset="yield-sign" data-name="Yield sign" type="button"><span class="yield-preview">YIELD</span><span>Yield</span></button>
+                        <button class="asset-item" draggable="true" data-asset="speed-sign" data-name="Speed limit sign" type="button"><span class="speed-preview">35</span><span>Speed</span></button>
+                        <button class="asset-item" draggable="true" data-asset="do-not-enter" data-name="Do Not Enter sign" type="button"><span class="asset-emoji">⛔</span><span>Do Not Enter</span></button>
+                        <button class="asset-item" draggable="true" data-asset="no-parking" data-name="No Parking sign" type="button"><i class="bi bi-sign-no-parking-fill asset-icon car-red"></i><span>No Parking</span></button>
+                        <button class="asset-item" draggable="true" data-asset="no-turn" data-name="No Turn sign" type="button"><i class="bi bi-sign-turn-right-fill asset-icon car-red"></i><span>No Turn</span></button>
+                        <button class="asset-item" draggable="true" data-asset="one-way" data-name="One Way sign" type="button"><i class="bi bi-arrow-right-square-fill asset-icon"></i><span>One Way</span></button>
+                        <button class="asset-item" draggable="true" data-asset="railroad-crossing" data-name="Railroad Crossing sign" type="button"><i class="bi bi-train-front-fill asset-icon"></i><span>Railroad</span></button>
+                        <button class="asset-item" draggable="true" data-asset="street-name" data-name="Street Name sign" type="button"><i class="bi bi-signpost-2-fill asset-icon car-green"></i><span>Street Name</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Warning Signs</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="curve-warning" data-name="Curve warning sign" type="button"><i class="bi bi-sign-turn-slight-right-fill asset-icon warning-icon"></i><span>Curve</span></button>
+                        <button class="asset-item" draggable="true" data-asset="intersection-warning" data-name="Intersection warning sign" type="button"><i class="bi bi-plus-square-fill asset-icon warning-icon"></i><span>Intersection</span></button>
+                        <button class="asset-item" draggable="true" data-asset="merge-warning" data-name="Merge warning sign" type="button"><i class="bi bi-sign-merge-right-fill asset-icon warning-icon"></i><span>Merge</span></button>
+                        <button class="asset-item" draggable="true" data-asset="lane-ends" data-name="Lane Ends sign" type="button"><i class="bi bi-sign-merge-left-fill asset-icon warning-icon"></i><span>Lane Ends</span></button>
+                        <button class="asset-item" draggable="true" data-asset="slippery-road" data-name="Slippery Road sign" type="button"><i class="bi bi-sign-turn-slight-right asset-icon warning-icon"></i><span>Slippery</span></button>
+                        <button class="asset-item" draggable="true" data-asset="pedestrian-crossing" data-name="Pedestrian Crossing sign" type="button"><i class="bi bi-person-walking asset-icon warning-icon"></i><span>Pedestrian</span></button>
+                        <button class="asset-item" draggable="true" data-asset="school-crossing" data-name="School Crossing sign" type="button"><i class="bi bi-people-fill asset-icon warning-icon"></i><span>School</span></button>
+                        <button class="asset-item" draggable="true" data-asset="construction-sign" data-name="Construction Work Zone sign" type="button"><i class="bi bi-cone-striped asset-icon warning-icon"></i><span>Work Zone</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Direction</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="route-marker" data-name="Route Marker" type="button"><i class="bi bi-shield-fill asset-icon"></i><span>Route Marker</span></button>
+                        <button class="asset-item" draggable="true" data-asset="exit-sign" data-name="Exit sign" type="button"><i class="bi bi-box-arrow-up-right asset-icon car-green"></i><span>Exit</span></button>
+                        <button class="asset-item" draggable="true" data-asset="detour-sign" data-name="Detour sign" type="button"><i class="bi bi-signpost-split-fill asset-icon cone-icon"></i><span>Detour</span></button>
+                        <button class="asset-item" draggable="true" data-asset="left-only-arrow" data-name="Left Turn Only Arrow" type="button"><i class="bi bi-sign-turn-left-fill asset-icon car-blue"></i><span>Left Only</span></button>
+                        <button class="asset-item" draggable="true" data-asset="right-only-arrow" data-name="Right Turn Only Arrow" type="button"><i class="bi bi-sign-turn-right-fill asset-icon car-blue"></i><span>Right Only</span></button>
+                        <button class="asset-item" draggable="true" data-asset="straight-left-arrow" data-name="Straight and Left Turn Arrow" type="button"><i class="bi bi-sign-turn-slight-left-fill asset-icon car-blue"></i><span>Straight + Left</span></button>
+                        <button class="asset-item" draggable="true" data-asset="straight-right-arrow" data-name="Straight and Right Turn Arrow" type="button"><i class="bi bi-sign-turn-slight-right-fill asset-icon car-blue"></i><span>Straight + Right</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Orientation &amp; Measurements</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="north-compass" data-name="North Compass Orientation Arrow" type="button"><i class="bi bi-compass asset-icon car-red"></i><span>North</span></button>
+                        <button class="asset-item" draggable="true" data-asset="measurement-line" data-name="Distance Measurement Line" type="button"><i class="bi bi-rulers asset-icon car-blue"></i><span>Distance</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Safety &amp; Accident</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="traffic-cone" data-name="Traffic Cone" type="button"><i class="bi bi-cone-striped asset-icon cone-icon"></i><span>Cone</span></button>
+                        <button class="asset-item" draggable="true" data-asset="barricade" data-name="Barricade" type="button"><i class="bi bi-sign-stop-lights-fill asset-icon cone-icon"></i><span>Barricade</span></button>
+                        <button class="asset-item" draggable="true" data-asset="guardrail" data-name="Guardrail" type="button"><span class="asset-preview guardrail-preview"></span><span>Guardrail</span></button>
+                        <button class="asset-item" draggable="true" data-asset="flashing-light" data-name="Flashing Warning Light" type="button"><i class="bi bi-lightbulb-fill asset-icon warning-icon"></i><span>Flashing Light</span></button>
+                        <button class="asset-item" draggable="true" data-asset="collision-point" data-name="Collision Point" type="button"><i class="bi bi-exclamation-diamond-fill asset-icon car-red"></i><span>Collision</span></button>
+                        <button class="asset-item" draggable="true" data-asset="debris" data-name="Debris" type="button"><i class="bi bi-stars asset-icon"></i><span>Debris</span></button>
+                        <button class="asset-item" draggable="true" data-asset="skid-marks" data-name="Skid Marks" type="button"><i class="bi bi-bezier2 asset-icon"></i><span>Skid Marks</span></button>
+                        <button class="asset-item" draggable="true" data-asset="vehicle-direction" data-name="Vehicle Direction" type="button"><i class="bi bi-arrow-right-circle-fill asset-icon car-green"></i><span>Vehicle Path</span></button>
+                        <button class="asset-item" draggable="true" data-asset="impact-arrow" data-name="Impact Arrow" type="button"><i class="bi bi-arrow-right-circle-fill asset-icon car-red"></i><span>Impact Arrow</span></button>
+                    </div>
+                </div>
+
+                <div class="asset-section">
+                    <h3>Surroundings</h3>
+                    <div class="asset-grid">
+                        <button class="asset-item" draggable="true" data-asset="tree" data-name="Tree" type="button"><span class="asset-emoji">🌳</span><span>Tree</span></button>
+                        <button class="asset-item" draggable="true" data-asset="building" data-name="Building" type="button"><span class="asset-emoji">🏢</span><span>Building</span></button>
+                        <button class="asset-item" draggable="true" data-asset="house" data-name="House" type="button"><span class="asset-preview house-preview"></span><span>House</span></button>
+                        <button class="asset-item" draggable="true" data-asset="house-driveway" data-name="House Driveway" type="button"><span class="asset-preview house-driveway-preview"></span><span>House Driveway</span></button>
+                        <button class="asset-item" draggable="true" data-asset="pedestrian" data-name="Pedestrian" type="button"><span class="asset-emoji">🚶</span><span>Person</span></button>
+                        <button class="asset-item" draggable="true" data-asset="arrow" data-name="Direction arrow" type="button"><i class="bi bi-arrow-right asset-icon"></i><span>Arrow</span></button>
+                        <button class="asset-item" draggable="true" data-asset="utility-pole" data-name="Utility Pole" type="button"><i class="bi bi-distribute-vertical asset-icon"></i><span>Utility Pole</span></button>
+                        <button class="asset-item" draggable="true" data-asset="fire-hydrant" data-name="Fire Hydrant" type="button"><i class="bi bi-fire asset-icon car-red"></i><span>Hydrant</span></button>
+                    </div>
+                </div>
+                <button class="panel-expand-tab" id="expandToolboxBtn" title="Expand toolbox" aria-label="Expand toolbox panel">
+                    <span class="tab-icon"><i class="bi bi-chevron-double-right"></i></span>
+                    <span class="tab-label">Objects</span>
+                </button>
+            </aside>
+
+            <section class="canvas-panel panel-card">
+                <div class="canvas-header">
+                    <div>
+                        <span class="canvas-title">Accident scene</span>
+                        <span class="canvas-help">Select an object to move, resize, or rotate it</span>
+                    </div>
+                    <div class="canvas-display-controls">
+                        <div class="background-mode" role="radiogroup" aria-label="Canvas background">
+                            <label><input id="blankCanvasMode" type="radio" name="backgroundMode" value="blank" checked /> Blank canvas</label>
+                            <label><input id="googleMapMode" type="radio" name="backgroundMode" value="google-map" /> Google Map</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="gridToggle" checked />
+                            <label class="form-check-label small" for="gridToggle">Grid</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="googleMapPanel" class="map-search-panel d-none" aria-label="Google Map location search" data-browser-api-key="@Model.GoogleMapsBrowserApiKey">
+                    <div class="map-address-field">
+                        <label for="mapAddress">Street address</label>
+                        <input id="mapAddress" class="form-control form-control-sm" placeholder="Start typing an address" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mapAddressSuggestions" />
+                        <div id="mapAddressSuggestions" class="map-address-suggestions d-none" role="listbox" aria-label="Address suggestions"></div>
+                    </div>
+                    <div class="map-zoom-field">
+                        <label for="mapZoom">Zoom</label>
+                        <select id="mapZoom" class="form-select form-select-sm">
+                            <option value="15">Area</option>
+                            <option value="16">Neighborhood</option>
+                            <option value="17">Streets</option>
+                            <option value="18" selected>Intersection</option>
+                            <option value="19">Close</option>
+                            <option value="20">Very close</option>
+                        </select>
+                    </div>
+                    <button id="loadMapBtn" class="btn btn-primary btn-sm" type="button"><i class="bi bi-search me-1"></i>Find</button>
+                    <button id="mapNavigationBtn" class="btn btn-outline-primary btn-sm" type="button"><i class="bi bi-arrows-move me-1"></i><span>Move map</span></button>
+                    <span id="mapStatus" class="map-status" role="status" aria-live="polite">Search for an address, then drag or zoom the map.</span>
+                </div>
+                <div id="canvasViewport" class="canvas-viewport show-grid">
+                    <div id="canvasStage" class="canvas-stage">
+                        <div id="googleMapCanvas" class="google-map-canvas" aria-label="Interactive Google Map"></div>
+                        <canvas id="diagramCanvas" width="1000" height="650" aria-label="Editable accident diagram"></canvas>
+                    </div>
+                </div>
+                <div class="canvas-footer">
+                    <span><i class="bi bi-info-circle me-1"></i>Tip: press Ctrl+A to select the whole scene. Drag to move it or use the top handle to rotate it.</span>
+                    <span id="objectCount">0 objects</span>
+                </div>
+            </section>
+
+            <aside class="properties-panel panel-card" id="propertiesPanel" aria-label="Selected object properties">
+                <div class="panel-heading">
+                    <div>
+                        <h2>Properties</h2>
+                        <p id="selectedObjectName">No object selected</p>
+                    </div>
+                    <button class="panel-toggle-btn" id="collapsePropertiesBtn" title="Collapse properties" aria-label="Collapse properties panel">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </button>
+                </div>
+
+                <div id="emptyProperties" class="empty-properties">
+                    <i class="bi bi-bounding-box-circles"></i>
+                    <p>Select an object on the canvas to edit its properties.</p>
+                </div>
+
+                <div id="objectProperties" class="object-properties d-none">
+                    <div class="property-group">
+                        <label for="objectLabel">Label</label>
+                        <input id="objectLabel" class="form-control form-control-sm" placeholder="Object label" />
+                    </div>
+                    <div id="streetNameGroup" class="property-group d-none">
+                        <label for="streetNameText">Street name</label>
+                        <input id="streetNameText" class="form-control form-control-sm" maxlength="24" placeholder="Enter street name" />
+                    </div>
+                    <div id="speedLimitGroup" class="property-group d-none">
+                        <label for="speedLimitValue">Speed limit</label>
+                        <input id="speedLimitValue" type="number" class="form-control form-control-sm" min="1" max="99" step="1" placeholder="Enter speed limit" />
+                    </div>
+                    <div id="measurementPropertiesGroup" class="measurement-properties-group d-none">
+                        <div class="measurement-property-heading"><i class="bi bi-rulers"></i> Distance measurement</div>
+                        <div class="property-group mb-1">
+                            <label for="measurementLabelText">Measurement label</label>
+                            <input id="measurementLabelText" class="form-control form-control-sm" maxlength="40" placeholder="Example: 15 ft" />
+                        </div>
+                        <p class="measurement-property-help">Enter the actual scene measurement. The visual line length does not calculate the distance.</p>
+                    </div>
+                    <div id="vehiclePropertiesGroup" class="d-none">
+                        <div class="property-group">
+                            <label for="vehicleUnitNumber">Unit number</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">Unit</span>
+                                <input id="vehicleUnitNumber" type="number" class="form-control" min="1" max="999" step="1" inputmode="numeric" aria-label="Vehicle unit number" />
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <label for="vehicleDirection">Direction of travel</label>
+                            <select id="vehicleDirection" class="form-select form-select-sm">
+                                <option value="">Not specified</option>
+                                <option value="north">Northbound</option>
+                                <option value="northeast">Northeastbound</option>
+                                <option value="east">Eastbound</option>
+                                <option value="southeast">Southeastbound</option>
+                                <option value="south">Southbound</option>
+                                <option value="southwest">Southwestbound</option>
+                                <option value="west">Westbound</option>
+                                <option value="northwest">Northwestbound</option>
+                                <option value="stationary">Stationary</option>
+                                <option value="custom" disabled>Custom angle</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="roadPropertiesGroup" class="road-properties-group d-none">
+                        <div class="road-property-heading"><i class="bi bi-signpost-split"></i> Smart road controls</div>
+                        <div class="form-check form-switch road-lock-switch">
+                            <input id="roadLockedToggle" class="form-check-input" type="checkbox" role="switch" />
+                            <label class="form-check-label" for="roadLockedToggle">Lock selected road</label>
+                        </div>
+                        <p id="roadLockHelp" class="road-property-help">Unlocked roads snap to nearby compatible endpoints and rotate in 45° increments.</p>
+                        <div class="road-lock-actions">
+                            <button id="lockAllRoadsBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-lock"></i> Lock all</button>
+                            <button id="unlockAllRoadsBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-unlock"></i> Unlock all</button>
+                        </div>
+                    </div>
+                    <div class="property-row">
+                        <div class="property-group">
+                            <label for="fillColor">Color</label>
+                            <input id="fillColor" type="color" class="form-control form-control-color" value="#2563eb" />
+                        </div>
+                        <div class="property-group flex-grow-1">
+                            <label for="opacityRange">Opacity <span id="opacityValue">100%</span></label>
+                            <input id="opacityRange" type="range" class="form-range" min="20" max="100" value="100" />
+                        </div>
+                    </div>
+                    <div class="property-group">
+                        <label>Rotate</label>
+                        <div class="input-group input-group-sm">
+                            <button id="rotateLeftBtn" class="btn btn-outline-secondary" type="button" title="Rotate left"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            <input id="angleInput" type="number" class="form-control text-center" min="-360" max="360" step="any" value="0" />
+                            <span class="input-group-text">°</span>
+                            <button id="rotateRightBtn" class="btn btn-outline-secondary" type="button" title="Rotate right"><i class="bi bi-arrow-clockwise"></i></button>
+                        </div>
+                    </div>
+                    <div class="property-actions">
+                        <button id="duplicateBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-copy"></i> Duplicate</button>
+                        <button id="flipBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-symmetry-vertical"></i> Flip</button>
+                        <button id="frontBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-front"></i> Bring front</button>
+                        <button id="backBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-back"></i> Send back</button>
+                    </div>
+                </div>
+
+                <div class="notes-section">
+                    <label for="reportNotes">Accident description / notes</label>
+                    <textarea id="reportNotes" class="form-control form-control-sm" rows="6" placeholder="Describe vehicle movement, impact, road conditions, injuries, or other observations..."></textarea>
+                </div>
+                <button class="panel-expand-tab" id="expandPropertiesBtn" title="Expand properties" aria-label="Expand properties panel">
+                    <span class="tab-icon"><i class="bi bi-chevron-double-left"></i></span>
+                    <span class="tab-label">Properties</span>
+                </button>
+            </aside>
+        </div>
+
+        <div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+                <div class="modal-content template-modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h2 class="modal-title fs-5" id="templateModalTitle">Choose a crash template</h2>
+                            <p class="template-modal-subtitle">Start with a common crash layout, then adjust every road, vehicle, arrow and collision point.</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="template-grid" aria-label="Available crash templates">
+                            <button class="template-card" type="button" data-crash-template="rear-end">
+                                <i class="bi bi-distribute-horizontal"></i><span><strong>Rear-End</strong><small>Two vehicles traveling in the same lane.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="sideswipe">
+                                <i class="bi bi-arrows"></i><span><strong>Sideswipe</strong><small>Vehicles beside each other in the same direction.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="lane-change">
+                                <i class="bi bi-sign-merge-right-fill"></i><span><strong>Lane Change / Merge</strong><small>One vehicle entering another vehicle's lane.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="head-on">
+                                <i class="bi bi-arrow-left-right"></i><span><strong>Head-On</strong><small>Opposing vehicles meeting in the same lane.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="opposite-sideswipe">
+                                <i class="bi bi-arrow-left-right"></i><span><strong>Opposite Sideswipe</strong><small>Opposing vehicles making side contact.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="left-turn">
+                                <i class="bi bi-sign-turn-left-fill"></i><span><strong>Left Turn</strong><small>A turning vehicle crossing opposing traffic.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="right-turn">
+                                <i class="bi bi-sign-turn-right-fill"></i><span><strong>Right Turn</strong><small>A right-turning vehicle entering crossing traffic.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="right-angle">
+                                <i class="bi bi-plus-lg"></i><span><strong>Right Angle</strong><small>Vehicles entering an intersection at 90 degrees.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="fixed-object">
+                                <i class="bi bi-tree-fill"></i><span><strong>Single Vehicle / Fixed Object</strong><small>A vehicle leaving the roadway and striking an object.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="pedestrian">
+                                <i class="bi bi-person-walking"></i><span><strong>Pedestrian</strong><small>A vehicle and pedestrian near a crosswalk.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="bicycle">
+                                <i class="bi bi-bicycle"></i><span><strong>Bicycle</strong><small>A motor vehicle and bicycle traveling near each other.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="parked-backing">
+                                <i class="bi bi-p-square-fill"></i><span><strong>Parked / Backing</strong><small>A backing vehicle contacting a parked vehicle.</small></span>
+                            </button>
+                            <button class="template-card" type="button" data-crash-template="multi-vehicle">
+                                <i class="bi bi-car-front-fill"></i><span><strong>Multi-Vehicle Chain</strong><small>Three vehicles involved in successive impacts.</small></span>
+                            </button>
+                        </div>
+                        <div class="template-notice"><i class="bi bi-info-circle"></i> Templates are starting layouts only. They do not determine fault and must be adjusted to match the actual scene.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h2 class="modal-title fs-5" id="confirmModalTitle">Start a new diagram?</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">The current diagram will be cleared. Save it first if you want to keep it.</div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="confirmNewBtn" class="btn btn-danger">Clear diagram</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @section Scripts {
+            <script src="~/js/diagram-editor.js" asp-append-version="true"></script>
+            <script>
+                    (function () {
+                        const workspaceGrid = document.getElementById('workspaceGrid');
+                        const toolboxPanel = document.getElementById('toolboxPanel');
+                        const propertiesPanel = document.getElementById('propertiesPanel');
+
+                        document.getElementById('collapseToolboxBtn').addEventListener('click', function () {
+                            toolboxPanel.classList.add('panel-collapsed');
+                            workspaceGrid.classList.add('left-collapsed');
+                        });
+                        document.getElementById('expandToolboxBtn').addEventListener('click', function () {
+                            toolboxPanel.classList.remove('panel-collapsed');
+                            workspaceGrid.classList.remove('left-collapsed');
+                        });
+                        document.getElementById('collapsePropertiesBtn').addEventListener('click', function () {
+                            propertiesPanel.classList.add('panel-collapsed');
+                            workspaceGrid.classList.add('right-collapsed');
+                        });
+                        document.getElementById('expandPropertiesBtn').addEventListener('click', function () {
+                            propertiesPanel.classList.remove('panel-collapsed');
+                            workspaceGrid.classList.remove('right-collapsed');
+                        });
+
+                        // Report strip toggle
+                        const reportStrip = document.getElementById('reportStrip');
+                        const reportContent = document.getElementById('reportContent');
+                        const toggleReportBtn = document.getElementById('toggleReportBtn');
+
+                        toggleReportBtn.addEventListener('click', function () {
+                            const isCollapsed = reportStrip.classList.toggle('report-collapsed');
+                            const icon = toggleReportBtn.querySelector('i');
+                            if (isCollapsed) {
+                                icon.classList.remove('bi-chevron-up');
+                                icon.classList.add('bi-chevron-down');
+                            } else {
+                                icon.classList.remove('bi-chevron-down');
+                                icon.classList.add('bi-chevron-up');
+                            }
+                        });
+                    })();
+            </script>
+        }

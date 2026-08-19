@@ -1,0 +1,13 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<div class="container py-5">
+    <div class="alert alert-danger">
+        <h1 class="h4">Something went wrong.</h1>
+        <p class="mb-0">Please return to the diagram builder and try again.</p>
+    </div>
+    <a asp-page="/Index" class="btn btn-primary">Return to editor</a>
+</div>
