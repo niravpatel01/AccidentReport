@@ -1244,6 +1244,28 @@
         const width = isAmbulance ? 92 : 80;
         const length = isAmbulance ? 180 : 152;
         const wheelX = width / 2 + 4;
+        const stripeWidth = isAmbulance ? 18 : 20;
+        const stripeTop = isAmbulance ? 4 : 12;
+        const stripeHeight = length - 36;
+        // Police and ambulance share near-identical body/light colors once the
+        // Monochrome theme flattens both blue and red to almost the same grey,
+        // so they're told apart by pattern (checkered vs solid + cross) rather
+        // than color alone: a solid-color stripe is indistinguishable from
+        // another solid stripe in grayscale, but a checker pattern still reads
+        // as a checker pattern.
+        const stripeItems = isAmbulance
+            ? [rect({ left: 0, top: stripeTop, width: stripeWidth, height: stripeHeight, fill: lightColor, opacity: .9, originX: "center", originY: "center" })]
+            : Array.from({ length: 6 }, (_, index) => {
+                const segmentHeight = stripeHeight / 6;
+                return rect({
+                    left: 0,
+                    top: stripeTop - stripeHeight / 2 + segmentHeight * (index + .5),
+                    width: stripeWidth, height: segmentHeight,
+                    fill: index % 2 === 0 ? lightColor : "#ffffff",
+                    stroke: "#94a3b8", strokeWidth: index % 2 === 0 ? 0 : 1,
+                    originX: "center", originY: "center"
+                });
+            });
         const items = [
             rect({ left: -wheelX, top: -45, width: 12, height: 31, rx: 4, fill: "#1f2937", originX: "center", originY: "center" }),
             rect({ left: wheelX, top: -45, width: 12, height: 31, rx: 4, fill: "#1f2937", originX: "center", originY: "center" }),
@@ -1251,7 +1273,7 @@
             rect({ left: wheelX, top: 45, width: 12, height: 31, rx: 4, fill: "#1f2937", originX: "center", originY: "center" }),
             rect({ left: 0, top: 0, width, height: length, rx: isAmbulance ? 12 : 24, fill: color, stroke: "#263241", strokeWidth: 3, originX: "center", originY: "center" }, true),
             rect({ left: 0, top: -length / 2 + 28, width: width - 18, height: 28, rx: 5, fill: "#cbe5f0", stroke: "#334155", strokeWidth: 2, originX: "center", originY: "center" }),
-            rect({ left: 0, top: isAmbulance ? 4 : 12, width: isAmbulance ? 18 : 20, height: length - 36, fill: lightColor, opacity: .9, originX: "center", originY: "center" }),
+            ...stripeItems,
             rect({ left: -width * .23, top: -18, width: width * .46, height: 12, rx: 3, fill: "#e53935", stroke: "#fff", strokeWidth: 1, originX: "center", originY: "center" }),
             rect({ left: width * .23, top: -18, width: width * .46, height: 12, rx: 3, fill: "#2563eb", stroke: "#fff", strokeWidth: 1, originX: "center", originY: "center" }),
             new fabric.Text(isAmbulance ? "+" : "POLICE", { left: 0, top: 35, fill: isAmbulance ? "#d52d2d" : "#173e75", fontSize: isAmbulance ? 38 : 13, fontWeight: "900", fontFamily: "Arial", angle: 90, originX: "center", originY: "center" })
