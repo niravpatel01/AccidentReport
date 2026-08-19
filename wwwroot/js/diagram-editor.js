@@ -51,8 +51,14 @@
         cornerColor: "#ffffff",
         cornerStrokeColor: "#2563eb",
         borderColor: "#2563eb",
-        cornerSize: 9,
-        padding: 3
+        cornerSize: 10,
+        // Fabric already grows the invisible hit-area for corner/rotation
+        // handles on touch input (default 24px); bumped further so dragging,
+        // resizing, and rotating stay comfortable with a fingertip on a
+        // tablet, where the visible 10px corner would otherwise be the only
+        // target.
+        touchCornerSize: 34,
+        padding: 4
     });
 
     const elements = {

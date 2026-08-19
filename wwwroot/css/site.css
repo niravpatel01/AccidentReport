@@ -106,6 +106,15 @@ button, input, textarea {
     min-width: 980px;
 }
 
+@media (max-width: 900px) {
+    /* The 980px floor above predates the tablet layout below and otherwise
+       overrides it outright: shrinking .workspace-grid's own columns doesn't
+       help if their ancestor still refuses to be narrower than 980px. */
+    .editor-shell {
+        min-width: 0;
+    }
+}
+
 .report-strip {
     display: flex;
     flex-direction: column;
@@ -899,6 +908,11 @@ button, input, textarea {
     background: #fff;
     box-shadow: 0 4px 20px rgba(20, 30, 50, .17);
     transform-origin: top left;
+    /* Let Fabric's own pointer handling own every touch gesture that starts on
+       the drawing surface (drag/resize/rotate) instead of the browser treating
+       it as a page-scroll or pinch-zoom attempt. The scrollable viewport around
+       the stage keeps normal touch scrolling for reaching zoomed-out content. */
+    touch-action: none;
 }
 
 .google-map-canvas {
@@ -1241,6 +1255,35 @@ button, input, textarea {
     }
 }
 
+/* Touch targets: Fabric's own selection handles already get a larger
+   invisible hit area on touch (see setupObjectDefaults in diagram-editor.js),
+   this covers the surrounding HTML controls so fingers have the same margin
+   for error that a mouse pointer doesn't need. Gated on pointer type rather
+   than viewport width so a touch laptop in a wide window still benefits, and
+   a narrow-but-mouse-driven window doesn't get needlessly bloated buttons. */
+@media (pointer: coarse) {
+    .tool-btn, .icon-btn {
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .header-btn {
+        min-height: 40px;
+    }
+
+    .asset-item {
+        min-height: 76px;
+    }
+
+    .panel-toggle-btn, .panel-expand-tab {
+        min-width: 36px;
+    }
+
+    .rotate-left-btn, .rotate-right-btn, #rotateLeftBtn, #rotateRightBtn {
+        min-width: 40px;
+    }
+}
+
 @media print {
     .app-header, .report-strip, .toolbar, .toolbox-panel, .properties-panel, .canvas-header, .map-search-panel, .canvas-footer {
         display: none !important;
@@ -1353,6 +1396,33 @@ button, input, textarea {
 
 .workspace-grid.left-collapsed.right-collapsed {
     grid-template-columns: 28px minmax(600px, 1fr) 28px;
+}
+
+/* Below ~900px the fixed 560/600px canvas floor no longer fits alongside
+   both side panels (toolbox + properties), which pushed the properties panel
+   off the right edge of the screen entirely on tablet-width viewports.
+   Letting the canvas column shrink keeps the whole workspace reachable
+   without horizontal scrolling; the inline script in Index.cshtml also
+   auto-collapses both side panels at this width so the canvas gets the room
+   it needs by default. These rules must come after the base
+   .workspace-grid.left-collapsed selectors above — equal specificity means
+   source order decides the tie, not the media query. */
+@media (max-width: 900px) {
+    .workspace-grid {
+        grid-template-columns: 170px minmax(280px, 1fr) 190px;
+    }
+
+    .workspace-grid.left-collapsed {
+        grid-template-columns: 28px minmax(280px, 1fr) 190px;
+    }
+
+    .workspace-grid.right-collapsed {
+        grid-template-columns: 170px minmax(280px, 1fr) 28px;
+    }
+
+    .workspace-grid.left-collapsed.right-collapsed {
+        grid-template-columns: 28px minmax(280px, 1fr) 28px;
+    }
 }
 
 /* Panel content transitions */

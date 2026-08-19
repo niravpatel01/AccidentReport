@@ -534,6 +534,17 @@
                         const toolboxPanel = document.getElementById('toolboxPanel');
                         const propertiesPanel = document.getElementById('propertiesPanel');
 
+                        // Below the tablet breakpoint (matches the CSS at max-width:900px),
+                        // both side panels default to collapsed so the canvas gets usable
+                        // room immediately instead of forcing a horizontal scroll to reach
+                        // the properties panel. Users can still tap the edge tabs to expand
+                        // either one on demand.
+                        if (window.innerWidth <= 900) {
+                            toolboxPanel.classList.add('panel-collapsed');
+                            propertiesPanel.classList.add('panel-collapsed');
+                            workspaceGrid.classList.add('left-collapsed', 'right-collapsed');
+                        }
+
                         document.getElementById('collapseToolboxBtn').addEventListener('click', function () {
                             toolboxPanel.classList.add('panel-collapsed');
                             workspaceGrid.classList.add('left-collapsed');
