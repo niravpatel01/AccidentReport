@@ -536,7 +536,11 @@
                     { x: 0, y: -halfHeight, dx: 0, dy: -1 }, { x: 0, y: halfHeight, dx: 0, dy: 1 }
                 ];
             case "t-junction": {
-                const crossbarY = -halfHeight + 54;
+                // The crossbar is 128px tall (half-height 64) and sits flush against
+                // the top of the group's bounding box, so its centerline is 64px
+                // below the top edge, not 54 (that was the intersection piece's
+                // unrelated road-edge inset, copied here by mistake).
+                const crossbarY = -halfHeight + 64;
                 return [
                     { x: -halfWidth, y: crossbarY, dx: -1, dy: 0 },
                     { x: halfWidth, y: crossbarY, dx: 1, dy: 0 },
@@ -762,8 +766,7 @@
             left, top,
             originX: "center", originY: "center",
             assetType,
-            displayName: name,
-            objectCaching: false
+            displayName: name
         };
     }
 
