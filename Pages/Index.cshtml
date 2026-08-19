@@ -331,6 +331,13 @@
                         <label for="objectLabel">Label</label>
                         <input id="objectLabel" class="form-control form-control-sm" placeholder="Object label" />
                     </div>
+                    <div class="object-lock-group">
+                        <div class="form-check form-switch object-lock-switch">
+                            <input id="objectLockedToggle" class="form-check-input" type="checkbox" role="switch" />
+                            <label class="form-check-label" for="objectLockedToggle"><i class="bi bi-lock"></i> Lock this object</label>
+                        </div>
+                        <p class="road-property-help">A locked object can still be selected, but cannot be moved, resized, rotated, flipped, or deleted until unlocked.</p>
+                    </div>
                     <div id="streetNameGroup" class="property-group d-none">
                         <label for="streetNameText">Street name</label>
                         <input id="streetNameText" class="form-control form-control-sm" maxlength="24" placeholder="Enter street name" />
@@ -374,10 +381,6 @@
                     </div>
                     <div id="roadPropertiesGroup" class="road-properties-group d-none">
                         <div class="road-property-heading"><i class="bi bi-signpost-split"></i> Smart road controls</div>
-                        <div class="form-check form-switch road-lock-switch">
-                            <input id="roadLockedToggle" class="form-check-input" type="checkbox" role="switch" />
-                            <label class="form-check-label" for="roadLockedToggle">Lock selected road</label>
-                        </div>
                         <p id="roadLockHelp" class="road-property-help">Unlocked roads snap to nearby compatible endpoints and rotate in 45° increments.</p>
                         <div class="road-lock-actions">
                             <button id="lockAllRoadsBtn" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-lock"></i> Lock all</button>

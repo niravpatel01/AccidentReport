@@ -9,10 +9,11 @@
     const CANVAS_WIDTH = 1000;
     const CANVAS_HEIGHT = 650;
     const AUTOSAVE_KEY = "accident-diagram-builder-autosave-v1";
+    const MONOCHROME_ROAD_OPACITY = .4;
     const SERIALIZED_PROPERTIES = [
         "assetType", "displayName", "colorable", "strokeColorable", "selectedColor", "editableTextRole",
-        "isVehicle", "vehicleId", "vehicleUnitNumber", "directionOfTravel", "isVehicleUnitLabel", "parentVehicleId", "roadLocked",
-        "measurementLabel", "themeOriginalFill", "themeOriginalStroke", "themeOriginalBackgroundColor"
+        "isVehicle", "vehicleId", "vehicleUnitNumber", "directionOfTravel", "isVehicleUnitLabel", "parentVehicleId", "roadLocked", "locked",
+        "measurementLabel", "themeOriginalFill", "themeOriginalStroke", "themeOriginalBackgroundColor", "themeOriginalOpacity"
     ];
     const VEHICLE_ASSET_TYPES = new Set(["car", "truck", "motorcycle", "bus", "paratransit", "bicycle", "police-car", "ambulance"]);
     const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "l-road", "intersection", "t-junction", "turn-lane", "driveway", "sidewalk"]);
@@ -65,7 +66,7 @@
         loadMapBtn: byId("loadMapBtn"), mapNavigationBtn: byId("mapNavigationBtn"), mapStatus: byId("mapStatus"), googleMapCanvas: byId("googleMapCanvas"),
         objectCount: byId("objectCount"), assetSearch: byId("assetSearch"),
         selectedObjectName: byId("selectedObjectName"), emptyProperties: byId("emptyProperties"), objectProperties: byId("objectProperties"),
-        objectLabel: byId("objectLabel"), streetNameGroup: byId("streetNameGroup"), streetNameText: byId("streetNameText"), speedLimitGroup: byId("speedLimitGroup"), speedLimitValue: byId("speedLimitValue"), measurementPropertiesGroup: byId("measurementPropertiesGroup"), measurementLabelText: byId("measurementLabelText"), vehiclePropertiesGroup: byId("vehiclePropertiesGroup"), vehicleUnitNumber: byId("vehicleUnitNumber"), vehicleDirection: byId("vehicleDirection"), roadPropertiesGroup: byId("roadPropertiesGroup"), roadLockedToggle: byId("roadLockedToggle"), roadLockHelp: byId("roadLockHelp"), lockAllRoadsBtn: byId("lockAllRoadsBtn"), unlockAllRoadsBtn: byId("unlockAllRoadsBtn"), fillColor: byId("fillColor"), opacityRange: byId("opacityRange"), opacityValue: byId("opacityValue"), angleInput: byId("angleInput"),
+        objectLabel: byId("objectLabel"), objectLockedToggle: byId("objectLockedToggle"), streetNameGroup: byId("streetNameGroup"), streetNameText: byId("streetNameText"), speedLimitGroup: byId("speedLimitGroup"), speedLimitValue: byId("speedLimitValue"), measurementPropertiesGroup: byId("measurementPropertiesGroup"), measurementLabelText: byId("measurementLabelText"), vehiclePropertiesGroup: byId("vehiclePropertiesGroup"), vehicleUnitNumber: byId("vehicleUnitNumber"), vehicleDirection: byId("vehicleDirection"), roadPropertiesGroup: byId("roadPropertiesGroup"), roadLockHelp: byId("roadLockHelp"), lockAllRoadsBtn: byId("lockAllRoadsBtn"), unlockAllRoadsBtn: byId("unlockAllRoadsBtn"), fillColor: byId("fillColor"), opacityRange: byId("opacityRange"), opacityValue: byId("opacityValue"), angleInput: byId("angleInput"),
         rotateLeftBtn: byId("rotateLeftBtn"), rotateRightBtn: byId("rotateRightBtn"), duplicateBtn: byId("duplicateBtn"), flipBtn: byId("flipBtn"), frontBtn: byId("frontBtn"), backBtn: byId("backBtn"),
         reportNumber: byId("reportNumber"), accidentDate: byId("accidentDate"), accidentTime: byId("accidentTime"), route: byId("route"), run: byId("run"), operatorEmployee: byId("operatorEmployee"), operatorPassPrNumber: byId("operatorPassPrNumber"), busVehicleNumber: byId("busVehicleNumber"), sldManager: byId("sldManager"), managerPassPrNumber: byId("managerPassPrNumber"), location: byId("location"), preparedBy: byId("preparedBy"), reportNotes: byId("reportNotes"),
         templateModal: byId("templateModal"), confirmModal: byId("confirmModal"), confirmNewBtn: byId("confirmNewBtn"), toast: byId("appToast"), toastMessage: byId("appToastMessage")
@@ -313,6 +314,22 @@
             }
         });
 
+        // Road surfaces default to a lighter opacity under the monochrome theme so
+        // markings and vehicles stand out against them, then return to whatever
+        // opacity they had (their own default of 100%, or a value the user set)
+        // once Full Color is restored.
+        if (isBaseRoad(object)) {
+            if (sceneTheme === "monochrome") {
+                if (!Object.prototype.hasOwnProperty.call(object, "themeOriginalOpacity")) {
+                    object.themeOriginalOpacity = object.opacity ?? 1;
+                }
+                object.set("opacity", MONOCHROME_ROAD_OPACITY);
+            } else if (Object.prototype.hasOwnProperty.call(object, "themeOriginalOpacity")) {
+                object.set("opacity", object.themeOriginalOpacity);
+                delete object.themeOriginalOpacity;
+            }
+        }
+
         if (object.getObjects) object.getObjects().forEach(applySceneThemeToObject);
         object.dirty = true;
     }
@@ -407,7 +424,11 @@
         canvas.loadFromJSON(state, () => {
             canvas.getObjects().forEach(object => {
                 normalizeRoadConnectors(object);
+                // Diagrams saved before generic object locking existed only have
+                // the legacy road-only "roadLocked" flag; carry it over.
+                if (object.roadLocked && !object.locked) object.locked = true;
                 configureSmartRoad(object);
+                setObjectLocked(object, Boolean(object.locked));
             });
             migrateVehicleUnits();
             applySceneTheme();
@@ -483,31 +504,36 @@
         if (!isBaseRoad(object)) return;
         object.snapAngle = ROAD_ROTATION_INCREMENT;
         object.snapThreshold = ROAD_ROTATION_THRESHOLD;
-        setRoadLocked(object, Boolean(object.roadLocked));
     }
 
-    function setRoadLocked(object, locked) {
-        if (!isBaseRoad(object)) return;
-        const isLocked = Boolean(locked);
-        object.roadLocked = isLocked;
+    // Locking works the same way for every object type, not just roads: the
+    // object stays selectable, but cannot be moved, resized, or rotated.
+    function setObjectLocked(object, locked) {
+        if (!object) return;
+        const isLockedValue = Boolean(locked);
+        object.locked = isLockedValue;
         object.set({
-            lockMovementX: isLocked,
-            lockMovementY: isLocked,
-            lockScalingX: isLocked,
-            lockScalingY: isLocked,
-            lockRotation: isLocked,
-            lockSkewingX: isLocked,
-            lockSkewingY: isLocked,
-            hasControls: !isLocked,
+            lockMovementX: isLockedValue,
+            lockMovementY: isLockedValue,
+            lockScalingX: isLockedValue,
+            lockScalingY: isLockedValue,
+            lockRotation: isLockedValue,
+            lockSkewingX: isLockedValue,
+            lockSkewingY: isLockedValue,
+            hasControls: !isLockedValue,
             selectable: true,
             evented: true,
-            hoverCursor: isLocked ? "not-allowed" : "move"
+            hoverCursor: isLockedValue ? "not-allowed" : "move"
         });
         object.setCoords();
     }
 
+    function isLocked(object) {
+        return Boolean(object && object.locked);
+    }
+
     function snapRoadRotation(object, force = false) {
-        if (!isBaseRoad(object) || object.roadLocked) return false;
+        if (!isBaseRoad(object) || object.locked) return false;
         const current = normalizeAngle(object.angle);
         const snapped = (Math.round(current / ROAD_ROTATION_INCREMENT) * ROAD_ROTATION_INCREMENT) % 360;
         const difference = Math.min(Math.abs(current - snapped), 360 - Math.abs(current - snapped));
@@ -564,7 +590,7 @@
     }
 
     function snapRoadToNearbyEndpoint(movingRoad) {
-        if (!isSnappableRoad(movingRoad) || movingRoad.roadLocked || movingRoad.group) return false;
+        if (!isSnappableRoad(movingRoad) || movingRoad.locked || movingRoad.group) return false;
         const movingConnectors = roadConnectors(movingRoad);
         const targetRoads = canvas.getObjects().filter(object => object !== movingRoad && isSnappableRoad(object));
         let bestMatch = null;
@@ -602,7 +628,7 @@
 
     function setAllRoadLocks(locked) {
         const roads = canvas.getObjects().filter(isBaseRoad);
-        roads.forEach(road => setRoadLocked(road, locked));
+        roads.forEach(road => setObjectLocked(road, locked));
         canvas.discardActiveObject();
         canvas.requestRenderAll();
         updatePropertiesPanel();
@@ -1643,7 +1669,7 @@
     async function selectAllObjects() {
         if (mapNavigationActive && !(await finishMapNavigation())) return;
         setInteractionMode("select");
-        const objects = canvas.getObjects().filter(object => !object.isVehicleUnitLabel && object.selectable !== false && !object.roadLocked);
+        const objects = canvas.getObjects().filter(object => !object.isVehicleUnitLabel && object.selectable !== false && !object.locked);
         if (!objects.length) {
             showToast("There are no diagram objects to select");
             return;
@@ -1659,15 +1685,15 @@
         }
         canvas.requestRenderAll();
         updatePropertiesPanel();
-        const lockedRoadCount = canvas.getObjects().filter(object => isBaseRoad(object) && object.roadLocked).length;
-        showToast(`${objects.length} objects selected${lockedRoadCount ? ` (${lockedRoadCount} locked road${lockedRoadCount === 1 ? "" : "s"} excluded)` : ""} — drag to move or rotate`);
+        const lockedCount = canvas.getObjects().filter(object => !object.isVehicleUnitLabel && object.locked).length;
+        showToast(`${objects.length} objects selected${lockedCount ? ` (${lockedCount} locked object${lockedCount === 1 ? "" : "s"} excluded)` : ""} — drag to move or rotate`);
     }
 
     function deleteSelected() {
         const active = activeObject();
         if (!active) return;
-        if (isBaseRoad(active) && active.roadLocked) {
-            showToast("Unlock this road before deleting it");
+        if (isLocked(active)) {
+            showToast("Unlock this object before deleting it");
             return;
         }
         historyLocked = true;
@@ -1690,7 +1716,7 @@
                 clone.canvas = canvas;
                 clone.forEachObject(object => {
                     configureSmartRoad(object);
-                    if (isBaseRoad(object)) setRoadLocked(object, false);
+                    setObjectLocked(object, false);
                     if (isVehicle(object)) ensureVehicleMetadata(object, true);
                     canvas.add(object);
                     object.setCoords();
@@ -1699,7 +1725,7 @@
                 clone.setCoords();
             } else {
                 configureSmartRoad(clone);
-                if (isBaseRoad(clone)) setRoadLocked(clone, false);
+                setObjectLocked(clone, false);
                 if (isVehicle(clone)) ensureVehicleMetadata(clone, true);
                 canvas.add(clone);
                 clone.setCoords();
@@ -1790,6 +1816,7 @@
         elements.selectedObjectName.textContent = hasSingleSelection ? (active.displayName || "Selected object") : "No object selected";
         if (!hasSingleSelection) return;
         elements.objectLabel.value = active.displayName || "";
+        elements.objectLockedToggle.checked = isLocked(active);
         if (streetText) elements.streetNameText.value = streetText.text || "";
         if (speedText) elements.speedLimitValue.value = String(speedText.text).match(/\d+/g)?.at(-1) || "35";
         if (measurementText) elements.measurementLabelText.value = active.measurementLabel || measurementText.text || "";
@@ -1800,17 +1827,16 @@
         }
         if (road) {
             configureSmartRoad(road);
-            elements.roadLockedToggle.checked = Boolean(road.roadLocked);
-            elements.roadLockHelp.textContent = road.roadLocked
+            elements.roadLockHelp.textContent = road.locked
                 ? "This road cannot be moved, resized or rotated until it is unlocked."
                 : isSnappableRoad(road)
                     ? "Drag an open endpoint near another compatible road. Mouse rotation snaps near 45° increments; typed angles stay exact."
                     : "Mouse rotation snaps near 45° increments; typed angles stay exact. This road can also be locked in place.";
         }
-        const roadIsLocked = Boolean(road?.roadLocked);
-        elements.angleInput.disabled = roadIsLocked;
-        elements.rotateLeftBtn.disabled = roadIsLocked;
-        elements.rotateRightBtn.disabled = roadIsLocked;
+        const activeIsLocked = isLocked(active);
+        elements.angleInput.disabled = activeIsLocked;
+        elements.rotateLeftBtn.disabled = activeIsLocked;
+        elements.rotateRightBtn.disabled = activeIsLocked;
         elements.fillColor.value = primaryFill(active);
         elements.opacityRange.value = Math.round((active.opacity ?? 1) * 100);
         elements.opacityValue.textContent = `${elements.opacityRange.value}%`;
@@ -1820,8 +1846,8 @@
     function rotateActive(delta) {
         const active = activeObject();
         if (!active) return;
-        if (isBaseRoad(active) && active.roadLocked) {
-            showToast("Unlock this road before rotating it");
+        if (isLocked(active)) {
+            showToast("Unlock this object before rotating it");
             return;
         }
         active.rotate((active.angle || 0) + delta);
@@ -2598,8 +2624,8 @@
     elements.rotateRightBtn.addEventListener("click", () => rotateActive(15));
     elements.flipBtn.addEventListener("click", () => {
         const active = activeObject(); if (!active) return;
-        if (isBaseRoad(active) && active.roadLocked) {
-            showToast("Unlock this road before flipping it");
+        if (isLocked(active)) {
+            showToast("Unlock this object before flipping it");
             return;
         }
         active.set("flipX", !active.flipX); canvas.requestRenderAll(); saveHistory();
@@ -2708,17 +2734,19 @@
         canvas.requestRenderAll();
         saveHistory();
     });
-    elements.roadLockedToggle.addEventListener("change", () => {
-        const road = activeObject();
-        if (!isBaseRoad(road)) return;
-        const locked = elements.roadLockedToggle.checked;
-        setRoadLocked(road, locked);
+    elements.objectLockedToggle.addEventListener("change", () => {
+        const active = activeObject();
+        if (!active || active.type === "activeSelection") return;
+        const locked = elements.objectLockedToggle.checked;
+        setObjectLocked(active, locked);
         canvas.requestRenderAll();
         updatePropertiesPanel();
         saveHistory();
         showToast(locked
-            ? "Road locked — it can still be selected, but it cannot be moved, resized or rotated"
-            : "Road unlocked — endpoint and 45° rotation snapping are active");
+            ? "Object locked — it can still be selected, but it cannot be moved, resized or rotated"
+            : isBaseRoad(active)
+                ? "Road unlocked — endpoint and 45° rotation snapping are active"
+                : "Object unlocked");
     });
     elements.lockAllRoadsBtn.addEventListener("click", () => setAllRoadLocks(true));
     elements.unlockAllRoadsBtn.addEventListener("click", () => setAllRoadLocks(false));
@@ -2747,9 +2775,9 @@
     elements.opacityRange.addEventListener("change", saveHistory);
     elements.angleInput.addEventListener("change", () => {
         const active = activeObject(); if (!active) return;
-        if (isBaseRoad(active) && active.roadLocked) {
+        if (isLocked(active)) {
             elements.angleInput.value = Math.round(active.angle || 0);
-            showToast("Unlock this road before rotating it");
+            showToast("Unlock this object before rotating it");
             return;
         }
         const requestedAngle = Number(elements.angleInput.value);
@@ -2844,8 +2872,8 @@
         if (event.key === "Escape") { setInteractionMode("select"); canvas.discardActiveObject(); canvas.requestRenderAll(); return; }
         if (active && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
             event.preventDefault();
-            if (isBaseRoad(active) && active.roadLocked) {
-                showToast("Unlock this road before moving it");
+            if (isLocked(active)) {
+                showToast("Unlock this object before moving it");
                 return;
             }
             const step = event.shiftKey ? 10 : 1;

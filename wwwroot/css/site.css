@@ -965,6 +965,28 @@ button, input, textarea {
     margin-bottom: 12px;
 }
 
+.object-lock-group {
+    margin: 0 0 12px;
+    padding: 10px;
+    background: #f7f9fc;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+}
+
+.object-lock-switch {
+    margin-bottom: 6px;
+}
+
+    .object-lock-switch label {
+        color: #34445b;
+        font-size: .72rem;
+        font-weight: 650;
+    }
+
+    .object-lock-group .road-property-help {
+        margin-bottom: 0;
+    }
+
 .property-row {
     display: flex;
     align-items: end;
