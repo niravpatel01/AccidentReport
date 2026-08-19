@@ -66,7 +66,7 @@
         loadMapBtn: byId("loadMapBtn"), mapNavigationBtn: byId("mapNavigationBtn"), mapStatus: byId("mapStatus"), googleMapCanvas: byId("googleMapCanvas"),
         objectCount: byId("objectCount"), assetSearch: byId("assetSearch"),
         selectedObjectName: byId("selectedObjectName"), emptyProperties: byId("emptyProperties"), objectProperties: byId("objectProperties"),
-        objectLabel: byId("objectLabel"), objectLockedToggle: byId("objectLockedToggle"), streetNameGroup: byId("streetNameGroup"), streetNameText: byId("streetNameText"), speedLimitGroup: byId("speedLimitGroup"), speedLimitValue: byId("speedLimitValue"), measurementPropertiesGroup: byId("measurementPropertiesGroup"), measurementLabelText: byId("measurementLabelText"), vehiclePropertiesGroup: byId("vehiclePropertiesGroup"), vehicleUnitNumber: byId("vehicleUnitNumber"), vehicleDirection: byId("vehicleDirection"), roadPropertiesGroup: byId("roadPropertiesGroup"), roadLockHelp: byId("roadLockHelp"), lockAllRoadsBtn: byId("lockAllRoadsBtn"), unlockAllRoadsBtn: byId("unlockAllRoadsBtn"), fillColor: byId("fillColor"), opacityRange: byId("opacityRange"), opacityValue: byId("opacityValue"), angleInput: byId("angleInput"),
+        objectLabel: byId("objectLabel"), objectLockedToggle: byId("objectLockedToggle"), streetNameGroup: byId("streetNameGroup"), streetNameText: byId("streetNameText"), speedLimitGroup: byId("speedLimitGroup"), speedLimitValue: byId("speedLimitValue"), textPropertiesGroup: byId("textPropertiesGroup"), textFontFamily: byId("textFontFamily"), textFontSize: byId("textFontSize"), textBoldBtn: byId("textBoldBtn"), textItalicBtn: byId("textItalicBtn"), measurementPropertiesGroup: byId("measurementPropertiesGroup"), measurementLabelText: byId("measurementLabelText"), vehiclePropertiesGroup: byId("vehiclePropertiesGroup"), vehicleUnitNumber: byId("vehicleUnitNumber"), vehicleDirection: byId("vehicleDirection"), roadPropertiesGroup: byId("roadPropertiesGroup"), roadLockHelp: byId("roadLockHelp"), lockAllRoadsBtn: byId("lockAllRoadsBtn"), unlockAllRoadsBtn: byId("unlockAllRoadsBtn"), fillColor: byId("fillColor"), opacityRange: byId("opacityRange"), opacityValue: byId("opacityValue"), angleInput: byId("angleInput"),
         rotateLeftBtn: byId("rotateLeftBtn"), rotateRightBtn: byId("rotateRightBtn"), duplicateBtn: byId("duplicateBtn"), flipBtn: byId("flipBtn"), frontBtn: byId("frontBtn"), backBtn: byId("backBtn"),
         reportNumber: byId("reportNumber"), accidentDate: byId("accidentDate"), accidentTime: byId("accidentTime"), route: byId("route"), run: byId("run"), operatorEmployee: byId("operatorEmployee"), operatorPassPrNumber: byId("operatorPassPrNumber"), busVehicleNumber: byId("busVehicleNumber"), sldManager: byId("sldManager"), managerPassPrNumber: byId("managerPassPrNumber"), location: byId("location"), preparedBy: byId("preparedBy"), reportNotes: byId("reportNotes"),
         templateModal: byId("templateModal"), confirmModal: byId("confirmModal"), confirmNewBtn: byId("confirmNewBtn"), toast: byId("appToast"), toastMessage: byId("appToastMessage")
@@ -1549,6 +1549,21 @@
         return createMeasurementLine((start.x + end.x) / 2, (start.y + end.y) / 2, length, angle);
     }
 
+    function createCalloutArrow(left, top, angle = 0) {
+        const half = 85;
+        // The shaft runs all the way to the tip point; an open "V" chevron
+        // (two strokes, not a filled triangle) sits right at that same point.
+        const shaft = line([-half, 0, half, 0], { stroke: "#111111", strokeWidth: 1.5, strokeLineCap: "round" });
+        shaft.strokeColorable = true;
+        const chevronTop = line([-half, 0, -half + 14, -8], { stroke: "#111111", strokeWidth: 2, strokeLineCap: "round" });
+        chevronTop.strokeColorable = true;
+        const chevronBottom = line([-half, 0, -half + 14, 8], { stroke: "#111111", strokeWidth: 2, strokeLineCap: "round" });
+        chevronBottom.strokeColorable = true;
+        const callout = group([shaft, chevronTop, chevronBottom], "Pointer Arrow", "callout-arrow", left, top);
+        callout.rotate(angle);
+        return callout;
+    }
+
     function createArrow(left, top) {
         const arrow = new fabric.Polygon([{ x: -75, y: -14 }, { x: 25, y: -14 }, { x: 25, y: -34 }, { x: 78, y: 0 }, { x: 25, y: 34 }, { x: 25, y: 14 }, { x: -75, y: 14 }], { left: 0, top: 0, fill: "#2458d3", stroke: "#163b8f", strokeWidth: 2, originX: "center", originY: "center" });
         arrow.colorable = true;
@@ -1557,7 +1572,7 @@
     }
 
     function createText(left, top) {
-        return new fabric.IText("Type label", { ...commonOptions("Text label", "text", left, top), fill: "#111827", fontFamily: "Arial", fontSize: 28, fontWeight: "600" });
+        return new fabric.IText("Type label", { ...commonOptions("Text label", "text", left, top), fill: "#111827", fontFamily: "Arial", fontSize: 28, fontWeight: "700", fontStyle: "normal" });
     }
 
     function createAsset(assetType, left = CANVAS_WIDTH / 2, top = CANVAS_HEIGHT / 2) {
@@ -1626,6 +1641,7 @@
             case "fire-hydrant": return createFireHydrant(left, top);
             case "north-compass": return createNorthCompass(left, top);
             case "measurement-line": return createMeasurementLine(left, top);
+            case "callout-arrow": return createCalloutArrow(left, top);
             case "arrow": return createArrow(left, top);
             case "text": return createText(left, top);
             default: return null;
@@ -1725,6 +1741,7 @@
         else if (isRoadMarking(object)) showToast("Road marking placed above roads and behind the scene objects");
         else if (object.assetType === "measurement-line") showToast("Measurement added — resize or rotate it, then enter the actual distance in Properties");
         else if (object.assetType === "north-compass") showToast("North compass added — rotate it to match the scene orientation");
+        else if (object.assetType === "callout-arrow") showToast("Pointer arrow added — rotate it to point at the detail");
     }
 
     function activeObject() { return canvas.getActiveObject(); }
@@ -1867,12 +1884,14 @@
         const streetText = hasSingleSelection ? findStreetNameText(active) : null;
         const speedText = hasSingleSelection ? findSpeedLimitText(active) : null;
         const measurementText = hasSingleSelection ? findMeasurementText(active) : null;
+        const textObject = hasSingleSelection && active.type === "i-text" ? active : null;
         const vehicle = hasSingleSelection && isVehicle(active) ? active : null;
         const road = hasSingleSelection && isBaseRoad(active) ? active : null;
         elements.emptyProperties.classList.toggle("d-none", !!hasSingleSelection);
         elements.objectProperties.classList.toggle("d-none", !hasSingleSelection);
         elements.streetNameGroup.classList.toggle("d-none", !streetText);
         elements.speedLimitGroup.classList.toggle("d-none", !speedText);
+        elements.textPropertiesGroup.classList.toggle("d-none", !textObject);
         elements.measurementPropertiesGroup.classList.toggle("d-none", !measurementText);
         elements.vehiclePropertiesGroup.classList.toggle("d-none", !vehicle);
         elements.roadPropertiesGroup.classList.toggle("d-none", !road);
@@ -1883,6 +1902,18 @@
         if (streetText) elements.streetNameText.value = streetText.text || "";
         if (speedText) elements.speedLimitValue.value = String(speedText.text).match(/\d+/g)?.at(-1) || "35";
         if (measurementText) elements.measurementLabelText.value = active.measurementLabel || measurementText.text || "";
+        if (textObject) {
+            const isBold = parseInt(textObject.fontWeight, 10) >= 700 || textObject.fontWeight === "bold";
+            const isItalic = textObject.fontStyle === "italic";
+            elements.textFontFamily.value = textObject.fontFamily || "Arial";
+            elements.textFontSize.value = Math.round(textObject.fontSize || 28);
+            elements.textBoldBtn.classList.toggle("btn-secondary", isBold);
+            elements.textBoldBtn.classList.toggle("btn-outline-secondary", !isBold);
+            elements.textBoldBtn.setAttribute("aria-pressed", String(isBold));
+            elements.textItalicBtn.classList.toggle("btn-secondary", isItalic);
+            elements.textItalicBtn.classList.toggle("btn-outline-secondary", !isItalic);
+            elements.textItalicBtn.setAttribute("aria-pressed", String(isItalic));
+        }
         if (vehicle) {
             ensureVehicleMetadata(vehicle);
             elements.vehicleUnitNumber.value = String(vehicle.vehicleUnitNumber);
@@ -2745,6 +2776,48 @@
         const speedText = findSpeedLimitText(activeObject());
         if (speedText) speedText.set("text", `SPEED\nLIMIT\n${normalized}`);
         canvas.requestRenderAll();
+        saveHistory();
+    });
+    elements.textFontFamily.addEventListener("change", () => {
+        const active = activeObject();
+        if (!active || active.type !== "i-text") return;
+        active.set("fontFamily", elements.textFontFamily.value);
+        canvas.requestRenderAll();
+        saveHistory();
+    });
+    elements.textFontSize.addEventListener("input", () => {
+        const active = activeObject();
+        if (!active || active.type !== "i-text") return;
+        const size = Number(elements.textFontSize.value);
+        if (!Number.isFinite(size)) return;
+        active.set("fontSize", Math.min(120, Math.max(8, size)));
+        canvas.requestRenderAll();
+    });
+    elements.textFontSize.addEventListener("change", () => {
+        const active = activeObject();
+        if (!active || active.type !== "i-text") return;
+        const normalized = Math.min(120, Math.max(8, Math.round(Number(elements.textFontSize.value)) || 28));
+        elements.textFontSize.value = String(normalized);
+        active.set("fontSize", normalized);
+        canvas.requestRenderAll();
+        saveHistory();
+    });
+    elements.textBoldBtn.addEventListener("click", () => {
+        const active = activeObject();
+        if (!active || active.type !== "i-text") return;
+        const isBold = parseInt(active.fontWeight, 10) >= 700 || active.fontWeight === "bold";
+        active.set("fontWeight", isBold ? "400" : "700");
+        canvas.requestRenderAll();
+        updatePropertiesPanel();
+        saveHistory();
+    });
+    elements.textItalicBtn.addEventListener("click", () => {
+        const active = activeObject();
+        if (!active || active.type !== "i-text") return;
+        const isItalic = active.fontStyle === "italic";
+        active.set("fontStyle", isItalic ? "normal" : "italic");
+        canvas.requestRenderAll();
+        updatePropertiesPanel();
         saveHistory();
     });
     elements.measurementLabelText.addEventListener("input", () => {

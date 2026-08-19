@@ -238,6 +238,7 @@
                         <button class="asset-item" draggable="true" data-asset="skid-marks" data-name="Skid Marks" type="button"><i class="bi bi-bezier2 asset-icon"></i><span>Skid Marks</span></button>
                         <button class="asset-item" draggable="true" data-asset="vehicle-direction" data-name="Vehicle Direction" type="button"><i class="bi bi-arrow-right-circle-fill asset-icon car-green"></i><span>Vehicle Path</span></button>
                         <button class="asset-item" draggable="true" data-asset="impact-arrow" data-name="Impact Arrow" type="button"><i class="bi bi-arrow-right-circle-fill asset-icon car-red"></i><span>Impact Arrow</span></button>
+                        <button class="asset-item" draggable="true" data-asset="callout-arrow" data-name="Pointer Arrow" type="button"><i class="bi bi-arrow-up-right asset-icon"></i><span>Pointer</span></button>
                     </div>
                 </div>
 
@@ -345,6 +346,32 @@
                     <div id="speedLimitGroup" class="property-group d-none">
                         <label for="speedLimitValue">Speed limit</label>
                         <input id="speedLimitValue" type="number" class="form-control form-control-sm" min="1" max="99" step="1" placeholder="Enter speed limit" />
+                    </div>
+                    <div id="textPropertiesGroup" class="measurement-properties-group d-none">
+                        <div class="measurement-property-heading"><i class="bi bi-fonts"></i> Text style</div>
+                        <div class="property-row mb-2">
+                            <div class="property-group flex-grow-1 mb-0">
+                                <label for="textFontFamily">Font</label>
+                                <select id="textFontFamily" class="form-select form-select-sm">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Tahoma">Tahoma</option>
+                                    <option value="Trebuchet MS">Trebuchet MS</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Courier New">Courier New</option>
+                                </select>
+                            </div>
+                            <div class="property-group mb-0" style="width:76px;">
+                                <label for="textFontSize">Size</label>
+                                <input id="textFontSize" type="number" class="form-control form-control-sm" min="8" max="120" step="1" />
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <button id="textBoldBtn" class="btn btn-outline-secondary" type="button" title="Bold" aria-label="Bold" aria-pressed="false"><strong>B</strong></button>
+                            <button id="textItalicBtn" class="btn btn-outline-secondary" type="button" title="Italic" aria-label="Italic" aria-pressed="false"><em>I</em></button>
+                        </div>
                     </div>
                     <div id="measurementPropertiesGroup" class="measurement-properties-group d-none">
                         <div class="measurement-property-heading"><i class="bi bi-rulers"></i> Distance measurement</div>
