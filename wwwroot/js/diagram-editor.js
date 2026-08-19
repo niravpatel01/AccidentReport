@@ -18,7 +18,7 @@
     const VEHICLE_ASSET_TYPES = new Set(["car", "truck", "motorcycle", "bus", "paratransit", "bicycle", "police-car", "ambulance"]);
     const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "l-road", "intersection", "t-junction", "turn-lane", "driveway", "sidewalk"]);
     const ROAD_MARKING_ASSET_TYPES = new Set(["crosswalk", "four-way-crosswalk", "stop-line", "solid-line", "dashed-line"]);
-    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "intersection", "t-junction"]);
+    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "l-road", "intersection", "t-junction"]);
     const ROAD_ENDPOINT_SNAP_DISTANCE = 30;
     const ROAD_ENDPOINT_OVERLAP = 6;
     const ROAD_ROTATION_INCREMENT = 45;
@@ -549,8 +549,16 @@
     }
 
     function roadConnectorDefinitions(object) {
-        const halfWidth = Number(object.width) / 2;
-        const halfHeight = Number(object.height) / 2;
+        // Every child rect carries Fabric's default (invisible) 1px strokeWidth,
+        // which Fabric still factors into each child's bounding rect when it lays
+        // out the group — inflating the reported width/height by 1px versus the
+        // shape's true fill geometry. That's invisible for the symmetric ±half
+        // connectors below (absorbed by the endpoint overlap), but asset types
+        // whose connector position also depends on half-width/half-height for the
+        // perpendicular axis (L-road, T-junction) need the true value or the
+        // connector ends up perceptibly off-center.
+        const halfWidth = (Number(object.width) - 1) / 2;
+        const halfHeight = (Number(object.height) - 1) / 2;
         switch (object.assetType) {
             case "road-horizontal":
                 return [{ x: -halfWidth, y: 0, dx: -1, dy: 0 }, { x: halfWidth, y: 0, dx: 1, dy: 0 }];
@@ -560,6 +568,15 @@
                 return [
                     { x: -halfWidth, y: 0, dx: -1, dy: 0 }, { x: halfWidth, y: 0, dx: 1, dy: 0 },
                     { x: 0, y: -halfHeight, dx: 0, dy: -1 }, { x: 0, y: halfHeight, dx: 0, dy: 1 }
+                ];
+            case "l-road":
+                // The horizontal arm's far end sits flush against the bounding
+                // box's right edge, at the arm's own centerline (64px in from the
+                // top, since the arm is 128px tall). The vertical arm's far end
+                // mirrors this against the bottom edge.
+                return [
+                    { x: halfWidth, y: -halfHeight + 64, dx: 1, dy: 0 },
+                    { x: -halfWidth + 64, y: halfHeight, dx: 0, dy: 1 }
                 ];
             case "t-junction": {
                 // The crossbar is 128px tall (half-height 64) and sits flush against
@@ -1410,23 +1427,47 @@
     }
 
     function createHouse(left, top) {
+        // A clean symmetric gable (a plain triangle) reads as a proper roof at
+        // any scale; the previous jagged multi-point outline self-intersected
+        // and looked like a hand-drawn zigzag rather than an actual roofline.
+        const wallWidth = 170, wallHeight = 118, wallCenterY = 32;
+        const roofBaseY = wallCenterY - wallHeight / 2;
+        const roofHalfWidth = wallWidth / 2 + 16;
+        const roofPeakY = roofBaseY - 66;
+
         const roof = new fabric.Polygon([
-            { x: -100, y: 10 }, { x: 0, y: -72 }, { x: 100, y: 10 }, { x: 82, y: 30 }, { x: 0, y: -38 }, { x: -82, y: 30 }
-        ], { left: 0, top: -48, fill: "#b84f3b", stroke: "#663226", strokeWidth: 3, originX: "center", originY: "center" });
-        roof.colorable = true;
+            { x: -roofHalfWidth, y: roofBaseY }, { x: 0, y: roofPeakY }, { x: roofHalfWidth, y: roofBaseY }
+        ], { fill: "#a4402f", stroke: "#5c2418", strokeWidth: 3, strokeLineJoin: "round", originX: "center", originY: "center" });
+
+        const chimney = rect({ left: 58, top: -58, width: 22, height: 56, fill: "#8a5a45", stroke: "#54372a", strokeWidth: 2, originX: "center", originY: "center" });
+        const chimneyCap = rect({ left: 58, top: -87, width: 28, height: 8, rx: 1, fill: "#4b3327", originX: "center", originY: "center" });
+        const ridgeLine = line([0, roofPeakY + 5, 0, roofBaseY - 1], { stroke: "#7a2e20", strokeWidth: 2 });
+        const eaveTrim = rect({ left: 0, top: roofBaseY + 3, width: roofHalfWidth * 2 - 6, height: 7, rx: 2, fill: "#f5f1e6", stroke: "#c9c2b0", strokeWidth: 1, originX: "center", originY: "center" });
+
+        const houseWindow = (x) => {
+            const sign = x < 0 ? -1 : 1;
+            return [
+                rect({ left: x, top: 18, width: 36, height: 36, rx: 2, fill: "#a9d9ec", stroke: "#3f5b6b", strokeWidth: 2, originX: "center", originY: "center" }),
+                line([x, 1, x, 35], { stroke: "#ffffff", strokeWidth: 2 }),
+                line([x - 17, 18, x + 17, 18], { stroke: "#ffffff", strokeWidth: 2 }),
+                rect({ left: x, top: 39, width: 42, height: 6, rx: 2, fill: "#eef1f4", stroke: "#8b93a0", strokeWidth: 1, originX: "center", originY: "center" }),
+                rect({ left: x + 27 * sign, top: 18, width: 8, height: 38, rx: 1, fill: "#3f6b52", stroke: "#274734", strokeWidth: 1, originX: "center", originY: "center" })
+            ];
+        };
+
         return group([
-            rect({ left: 0, top: 31, width: 166, height: 120, rx: 4, fill: "#f0dfc3", stroke: "#596579", strokeWidth: 3, originX: "center", originY: "center" }, true),
-            rect({ left: 55, top: -64, width: 24, height: 55, fill: "#95604c", stroke: "#633b2f", strokeWidth: 2, originX: "center", originY: "center" }, true),
+            rect({ left: 0, top: wallCenterY, width: wallWidth, height: wallHeight, rx: 3, fill: "#f2e4c8", stroke: "#5c6b7d", strokeWidth: 3, originX: "center", originY: "center" }, true),
+            ...houseWindow(-52),
+            ...houseWindow(52),
+            rect({ left: 0, top: 63, width: 30, height: 54, rx: 3, fill: "#33404f", stroke: "#1c242e", strokeWidth: 2, originX: "center", originY: "center" }),
+            rect({ left: 0, top: 58, width: 20, height: 20, rx: 1, fill: "transparent", stroke: "#1c242e", strokeWidth: 1.5, originX: "center", originY: "center" }),
+            circle({ left: 11, top: 68, radius: 2.5, fill: "#f2cf63", stroke: "#6e5422", strokeWidth: 1, originX: "center", originY: "center" }),
+            rect({ left: 0, top: 91, width: wallWidth + 4, height: 8, fill: "#9aa1ab", stroke: "#656d78", strokeWidth: 1, originX: "center", originY: "center" }),
+            chimney,
             roof,
-            rect({ left: 0, top: 54, width: 38, height: 74, rx: 2, fill: "#6f4935", stroke: "#412d22", strokeWidth: 2, originX: "center", originY: "center" }, true),
-            rect({ left: -52, top: 20, width: 38, height: 38, fill: "#9ed3e5", stroke: "#506a78", strokeWidth: 2, originX: "center", originY: "center" }),
-            line([-52, 1, -52, 39], { stroke: "#ffffff", strokeWidth: 2 }),
-            line([-71, 20, -33, 20], { stroke: "#ffffff", strokeWidth: 2 }),
-            rect({ left: 52, top: 20, width: 38, height: 38, fill: "#9ed3e5", stroke: "#506a78", strokeWidth: 2, originX: "center", originY: "center" }),
-            line([52, 1, 52, 39], { stroke: "#ffffff", strokeWidth: 2 }),
-            line([33, 20, 71, 20], { stroke: "#ffffff", strokeWidth: 2 }),
-            circle({ left: 11, top: 55, radius: 3, fill: "#f2cf63", stroke: "#6e5422", strokeWidth: 1, originX: "center", originY: "center" }),
-            rect({ left: 0, top: 95, width: 72, height: 10, rx: 2, fill: "#a9afb6", stroke: "#69727c", strokeWidth: 1, originX: "center", originY: "center" })
+            eaveTrim,
+            ridgeLine,
+            chimneyCap
         ], "House", "house", left, top);
     }
 
