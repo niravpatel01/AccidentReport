@@ -816,6 +816,32 @@ button, input, textarea {
     background: linear-gradient(90deg, transparent 32%, #626e78 32% 68%, transparent 68%), linear-gradient(0deg, transparent 32%, #626e78 32% 68%, transparent 68%);
 }
 
+.intersection-preview.four-lane {
+    position: relative;
+}
+
+    .intersection-preview.four-lane::after,
+    .intersection-preview.four-lane::before {
+        content: "";
+        position: absolute;
+        background: repeating-linear-gradient(90deg, #fff 0 4px, transparent 4px 7px);
+    }
+
+    .intersection-preview.four-lane::after {
+        left: 3px;
+        right: 3px;
+        top: 10px;
+        height: 2px;
+    }
+
+    .intersection-preview.four-lane::before {
+        top: 3px;
+        bottom: 3px;
+        left: 26px;
+        width: 2px;
+        background: repeating-linear-gradient(0deg, #fff 0 4px, transparent 4px 7px);
+    }
+
 .t-junction-preview {
     background: linear-gradient(90deg, transparent 33%, #626e78 33% 67%, transparent 67%), linear-gradient(0deg, transparent 54%, #626e78 54% 88%, transparent 88%);
     background-position: center 8px, center -8px;

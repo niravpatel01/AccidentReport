@@ -16,9 +16,9 @@
         "measurementLabel", "themeOriginalFill", "themeOriginalStroke", "themeOriginalBackgroundColor", "themeOriginalOpacity"
     ];
     const VEHICLE_ASSET_TYPES = new Set(["car", "truck", "motorcycle", "bus", "paratransit", "bicycle", "police-car", "ambulance"]);
-    const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "roundabout", "t-junction", "y-intersection", "turn-lane", "driveway", "sidewalk"]);
+    const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "intersection-4lane", "roundabout", "t-junction", "y-intersection", "turn-lane", "driveway", "sidewalk"]);
     const ROAD_MARKING_ASSET_TYPES = new Set(["crosswalk", "four-way-crosswalk", "stop-line", "solid-line", "dashed-line", "median-divider", "railroad-track"]);
-    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "roundabout", "t-junction", "y-intersection"]);
+    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "intersection-4lane", "roundabout", "t-junction", "y-intersection"]);
     const ROAD_ENDPOINT_SNAP_DISTANCE = 30;
     const ROAD_ENDPOINT_OVERLAP = 6;
     const ROAD_ROTATION_INCREMENT = 45;
@@ -581,6 +581,7 @@
             case "road-vertical":
                 return [{ x: 0, y: -halfHeight, dx: 0, dy: -1 }, { x: 0, y: halfHeight, dx: 0, dy: 1 }];
             case "intersection":
+            case "intersection-4lane":
             case "roundabout":
                 return [
                     { x: -halfWidth, y: 0, dx: -1, dy: 0 }, { x: halfWidth, y: 0, dx: 1, dy: 0 },
@@ -1143,6 +1144,31 @@
             ...dashedCenterLines(500, true), ...dashedCenterLines(500, false)
         ];
         return group(items, "Intersection", "intersection", left, top, { lockUniScaling: true });
+    }
+
+    function createFourLaneIntersection(left, top) {
+        // Same footprint as the standard Intersection, but each arm carries the
+        // Four-Lane Road's markings (double solid yellow median, dashed white
+        // lane dividers) instead of a single dashed yellow center line.
+        const halfLength = 250;
+        const edge = 54;
+        const items = [
+            rect({ left: 0, top: 0, width: 500, height: 128, fill: "#5b6570", originX: "center", originY: "center" }, true),
+            rect({ left: 0, top: 0, width: 128, height: 500, fill: "#5b6570", originX: "center", originY: "center" }, true),
+            roadEdge([-halfLength, -edge, -edge, -edge]),
+            roadEdge([edge, -edge, halfLength, -edge]),
+            roadEdge([-halfLength, edge, -edge, edge]),
+            roadEdge([edge, edge, halfLength, edge]),
+            roadEdge([-edge, -halfLength, -edge, -edge]),
+            roadEdge([-edge, edge, -edge, halfLength]),
+            roadEdge([edge, -halfLength, edge, -edge]),
+            roadEdge([edge, edge, edge, halfLength]),
+            ...laneDividerSolid(500, true, -2, "#f8d94f"), ...laneDividerSolid(500, true, 2, "#f8d94f"),
+            ...laneDividerDashes(500, true, -27, "#ffffff"), ...laneDividerDashes(500, true, 27, "#ffffff"),
+            ...laneDividerSolid(500, false, -2, "#f8d94f"), ...laneDividerSolid(500, false, 2, "#f8d94f"),
+            ...laneDividerDashes(500, false, -27, "#ffffff"), ...laneDividerDashes(500, false, 27, "#ffffff")
+        ];
+        return group(items, "Four-Lane Intersection", "intersection-4lane", left, top, { lockUniScaling: true });
     }
 
     function createTJunction(left, top) {
@@ -1828,6 +1854,7 @@
             case "l-road": return createLRoad(left, top);
             case "curved-road": return createCurvedRoad(left, top);
             case "intersection": return createIntersection(left, top);
+            case "intersection-4lane": return createFourLaneIntersection(left, top);
             case "roundabout": return createRoundabout(left, top);
             case "t-junction": return createTJunction(left, top);
             case "y-intersection": return createYIntersection(left, top);
