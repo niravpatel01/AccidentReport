@@ -2448,6 +2448,79 @@
         });
     }
 
+    function vehicleLegendIcon(vehicle) {
+        // Snapshot the vehicle's own icon exactly as it currently renders
+        // (its live fill/stroke, so this matches Monochrome too) but upright
+        // rather than at its on-canvas rotation, so every legend row lines up
+        // consistently instead of some entries being sideways.
+        const originalAngle = vehicle.angle;
+        try {
+            vehicle.rotate(0);
+            vehicle.setCoords();
+            const width = vehicle.getScaledWidth();
+            const height = vehicle.getScaledHeight();
+            const dataUrl = vehicle.toDataURL({ format: "png", multiplier: 4 });
+            return { dataUrl, ratio: height > 0 ? width / height : 1 };
+        } finally {
+            vehicle.rotate(originalAngle);
+            vehicle.setCoords();
+        }
+    }
+
+    function drawPdfUnitLegend(doc, vehicles, startY, pageWidth, margin) {
+        const iconHeight = 7;
+        const rowHeight = 9.5;
+        const itemGap = 5;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.3);
+        doc.setTextColor(82, 94, 112);
+        doc.text("UNITS", pageWidth / 2, startY, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(28, 37, 54);
+
+        const availableWidth = pageWidth - margin * 2;
+        const items = vehicles.map(vehicle => {
+            const unit = `Unit ${vehicle.vehicleUnitNumber}`;
+            const savedLabel = (vehicle.displayName || "").trim();
+            const label = savedLabel ? `${unit}  •  ${savedLabel}` : unit;
+            const { dataUrl, ratio } = vehicleLegendIcon(vehicle);
+            const iconWidth = Math.max(2.5, iconHeight * ratio);
+            const itemWidth = iconWidth + 2.5 + doc.getTextWidth(label);
+            return { label, dataUrl, iconWidth, itemWidth };
+        });
+
+        // Pack items into rows first, then center each finished row on the page.
+        const rows = [];
+        let currentRow = [];
+        let currentWidth = 0;
+        items.forEach(item => {
+            const addedWidth = currentRow.length > 0 ? itemGap + item.itemWidth : item.itemWidth;
+            if (currentRow.length > 0 && currentWidth + addedWidth > availableWidth) {
+                rows.push(currentRow);
+                currentRow = [];
+                currentWidth = 0;
+            }
+            currentRow.push(item);
+            currentWidth += currentRow.length > 1 ? itemGap + item.itemWidth : item.itemWidth;
+        });
+        if (currentRow.length > 0) rows.push(currentRow);
+
+        let y = startY + 3;
+        rows.forEach(row => {
+            const rowWidth = row.reduce((sum, item, i) => sum + item.itemWidth + (i > 0 ? itemGap : 0), 0);
+            let x = margin + (availableWidth - rowWidth) / 2;
+            row.forEach(item => {
+                doc.addImage(item.dataUrl, "PNG", x, y, item.iconWidth, iconHeight, undefined, "FAST");
+                doc.text(item.label, x + item.iconWidth + 2.5, y + iconHeight / 2 + 1.2);
+                x += item.itemWidth + itemGap;
+            });
+            y += rowHeight;
+        });
+        return y;
+    }
+
     function formatReportDate(value) {
         const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
         return match ? `${match[2]}/${match[3]}/${match[1]}` : String(value || "");
@@ -2496,9 +2569,15 @@
             doc.setDrawColor(207, 215, 226);
             //doc.line(margin, 32, pageWidth - margin, 32);
 
+            const legendVehicles = vehicleObjects().slice().sort((a, b) => (Number(a.vehicleUnitNumber) || 0) - (Number(b.vehicleUnitNumber) || 0));
+            const hasLegend = legendVehicles.length > 0;
+
             const image = canvas.toDataURL({ format: "png", multiplier: 2, enableRetinaScaling: true });
             const maxWidth = pageWidth - (margin * 2);
-            const maxHeight = 160;
+            // Leave extra room below the diagram for the unit legend when
+            // there are vehicles to list; otherwise use the full height as
+            // before so unit-free diagrams aren't shrunk for no reason.
+            const maxHeight = hasLegend ? 143 : 160;
             const imageRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
             let imageWidth = maxWidth;
             let imageHeight = imageWidth / imageRatio;
@@ -2507,6 +2586,8 @@
             doc.setDrawColor(170, 181, 196);
             doc.rect(imageX - .5, 35, imageWidth + 1, imageHeight + 1);
             doc.addImage(image, "PNG", imageX, 35.5, imageWidth, imageHeight, undefined, "FAST");
+
+            if (hasLegend) drawPdfUnitLegend(doc, legendVehicles, 35 + imageHeight + 7, pageWidth, margin);
 
             doc.setDrawColor(220, 225, 232);
             doc.line(margin, 202, pageWidth - margin, 202);
