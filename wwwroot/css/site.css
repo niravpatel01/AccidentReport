@@ -556,6 +556,232 @@ button, input, textarea {
             background: repeating-linear-gradient(0deg, #f8e16c 0 7px, transparent 7px 12px);
         }
 
+.road-preview.three-lane::after {
+    left: 3px;
+    right: 3px;
+    top: 11px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, #f8e16c 0 7px, transparent 7px 12px);
+}
+
+.road-preview.three-lane::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    top: 18px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, #ffffff 0 7px, transparent 7px 12px);
+}
+
+.road-preview.four-lane::after {
+    left: 3px;
+    right: 3px;
+    top: 14px;
+    height: 3px;
+    background: #f8e16c;
+}
+
+.road-preview.four-lane::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    top: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(90deg, #ffffff 0 6px, transparent 6px 10px),
+        repeating-linear-gradient(90deg, #ffffff 0 6px, transparent 6px 10px);
+    background-size: 100% 2px, 100% 2px;
+    background-position: 0 7px, 0 21px;
+    background-repeat: no-repeat, no-repeat;
+}
+
+.road-preview.bus-lane::after {
+    left: 3px;
+    right: 3px;
+    top: 15px;
+    bottom: 2px;
+    background: #7a2e2e;
+}
+
+.road-preview.bus-lane::before {
+    content: "BUS";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 17px;
+    color: #fff;
+    font-size: 6px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: .5px;
+}
+
+.road-preview.cycle-lane::after {
+    left: 3px;
+    right: 3px;
+    top: 15px;
+    bottom: 2px;
+    background: #2f7d52;
+}
+
+.road-preview.cycle-lane::before {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    left: 22px;
+    top: 18px;
+    border: 1.5px solid #fff;
+    border-radius: 50%;
+}
+
+.road-preview.hov-lane::after {
+    left: 3px;
+    right: 3px;
+    top: 15px;
+    bottom: 2px;
+    background: #3a4f8c;
+}
+
+.road-preview.hov-lane::before {
+    content: "";
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    left: 22px;
+    top: 17px;
+    border: 1.5px solid #fff;
+    transform: rotate(45deg);
+}
+
+.ramp-preview {
+    position: relative;
+    background: #66717c;
+    border: 2px solid #424b54;
+    clip-path: polygon(0 8%, 0 92%, 100% 38%, 100% 62%);
+}
+
+    .ramp-preview::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 14px;
+        width: 30px;
+        height: 2px;
+        background: repeating-linear-gradient(90deg, #fff 0 5px, transparent 5px 9px);
+    }
+
+.curved-road-preview {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(90deg, transparent 0 38%, #66717c 38% 100%), linear-gradient(0deg, transparent 0 38%, #66717c 38% 100%);
+    border: 2px solid #424b54;
+    border-left: none;
+    border-top: none;
+    border-radius: 0 0 55% 0;
+    position: relative;
+}
+
+    .curved-road-preview::after {
+        content: "";
+        position: absolute;
+        width: 28px;
+        height: 2px;
+        top: 19px;
+        right: 2px;
+        background: repeating-linear-gradient(90deg, #f8e16c 0 5px, transparent 5px 9px);
+    }
+
+    .curved-road-preview::before {
+        content: "";
+        position: absolute;
+        width: 2px;
+        height: 28px;
+        left: 19px;
+        bottom: 2px;
+        background: repeating-linear-gradient(0deg, #f8e16c 0 5px, transparent 5px 9px);
+    }
+
+.roundabout-preview {
+    position: relative;
+    background: linear-gradient(90deg, transparent 32%, #626e78 32% 68%, transparent 68%), linear-gradient(0deg, transparent 32%, #626e78 32% 68%, transparent 68%);
+}
+
+    .roundabout-preview::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: #626e78;
+        border: 3px solid #3f7a4d;
+    }
+
+.y-intersection-preview {
+    background: #66717c;
+    position: relative;
+    overflow: hidden;
+}
+
+    .y-intersection-preview::after,
+    .y-intersection-preview::before {
+        content: "";
+        position: absolute;
+        width: 60%;
+        height: 40%;
+        background: #313a42;
+        left: -5%;
+    }
+
+    .y-intersection-preview::after {
+        top: -8%;
+        transform: rotate(28deg);
+        transform-origin: left center;
+    }
+
+    .y-intersection-preview::before {
+        bottom: -8%;
+        transform: rotate(-28deg);
+        transform-origin: left center;
+    }
+
+.median-preview {
+    position: relative;
+    background: #e2e5ea;
+    border: 1px solid #aeb4bc;
+}
+
+    .median-preview::after {
+        content: "";
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        top: 6px;
+        bottom: 6px;
+        background: repeating-linear-gradient(45deg, #c6cbd2 0 3px, transparent 3px 8px);
+    }
+
+.railroad-track-preview {
+    position: relative;
+    background: #8a6b4a;
+    border: 1px solid #5c4530;
+}
+
+    .railroad-track-preview::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 3px;
+        bottom: 3px;
+        background: repeating-linear-gradient(90deg, #33383f 0 3px, transparent 3px 15px);
+    }
+
 .l-road-preview {
     width: 45px;
     height: 45px;

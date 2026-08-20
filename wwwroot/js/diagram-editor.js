@@ -16,9 +16,9 @@
         "measurementLabel", "themeOriginalFill", "themeOriginalStroke", "themeOriginalBackgroundColor", "themeOriginalOpacity"
     ];
     const VEHICLE_ASSET_TYPES = new Set(["car", "truck", "motorcycle", "bus", "paratransit", "bicycle", "police-car", "ambulance"]);
-    const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "l-road", "intersection", "t-junction", "turn-lane", "driveway", "sidewalk"]);
-    const ROAD_MARKING_ASSET_TYPES = new Set(["crosswalk", "four-way-crosswalk", "stop-line", "solid-line", "dashed-line"]);
-    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "l-road", "intersection", "t-junction"]);
+    const ROAD_BASE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "roundabout", "t-junction", "y-intersection", "turn-lane", "driveway", "sidewalk"]);
+    const ROAD_MARKING_ASSET_TYPES = new Set(["crosswalk", "four-way-crosswalk", "stop-line", "solid-line", "dashed-line", "median-divider", "railroad-track"]);
+    const ROAD_SNAPPABLE_ASSET_TYPES = new Set(["road-horizontal", "road-vertical", "road-horizontal-3lane", "road-horizontal-4lane", "road-horizontal-buslane", "road-horizontal-cyclelane", "road-horizontal-hovlane", "road-horizontal-ramp", "l-road", "curved-road", "intersection", "roundabout", "t-junction", "y-intersection"]);
     const ROAD_ENDPOINT_SNAP_DISTANCE = 30;
     const ROAD_ENDPOINT_OVERLAP = 6;
     const ROAD_ROTATION_INCREMENT = 45;
@@ -567,13 +567,45 @@
         const halfHeight = (Number(object.height) - 1) / 2;
         switch (object.assetType) {
             case "road-horizontal":
+            case "road-horizontal-3lane":
+            case "road-horizontal-4lane":
+            case "road-horizontal-buslane":
+            case "road-horizontal-cyclelane":
+            case "road-horizontal-hovlane":
                 return [{ x: -halfWidth, y: 0, dx: -1, dy: 0 }, { x: halfWidth, y: 0, dx: 1, dy: 0 }];
+            case "road-horizontal-ramp":
+                // The taper narrows toward its right (east) end, which is left
+                // open (a ramp trails off rather than connecting to anything);
+                // only the full-width west end can connect.
+                return [{ x: -halfWidth, y: 0, dx: -1, dy: 0 }];
             case "road-vertical":
                 return [{ x: 0, y: -halfHeight, dx: 0, dy: -1 }, { x: 0, y: halfHeight, dx: 0, dy: 1 }];
             case "intersection":
+            case "roundabout":
                 return [
                     { x: -halfWidth, y: 0, dx: -1, dy: 0 }, { x: halfWidth, y: 0, dx: 1, dy: 0 },
                     { x: 0, y: -halfHeight, dx: 0, dy: -1 }, { x: 0, y: halfHeight, dx: 0, dy: 1 }
+                ];
+            case "curved-road":
+                // Quarter-turn bend from a west-facing arm to a south-facing arm.
+                // The west end sits flush against the bounding box's left edge
+                // (its own centerline); the south end sits flush against the
+                // bottom edge, offset 64px in from the right edge (the arm's own
+                // half-width), mirroring the L-road formula for the opposite pair
+                // of edges.
+                return [
+                    { x: -halfWidth, y: -halfHeight + 64, dx: -1, dy: 0 },
+                    { x: halfWidth - 64, y: halfHeight, dx: 0, dy: 1 }
+                ];
+            case "y-intersection":
+                // One straight west stem plus two branches splitting off at ±30°
+                // from east. The branch endpoints aren't flush against a bounding
+                // box edge (the shape isn't rectangular), so they're fixed offsets
+                // measured from the authored geometry rather than half-width/height.
+                return [
+                    { x: -halfWidth, y: 0, dx: -1, dy: 0 },
+                    { x: 170.6, y: -100, dx: 0.866, dy: -.5 },
+                    { x: 170.6, y: 100, dx: 0.866, dy: .5 }
                 ];
             case "l-road":
                 // The horizontal arm's far end sits flush against the bounding
@@ -849,6 +881,22 @@
         return items;
     }
 
+    function laneDividerDashes(long, horizontal, offset, color) {
+        const items = [];
+        for (let position = -long / 2 + 22; position < long / 2 - 10; position += 38) {
+            items.push(horizontal
+                ? rect({ left: position, top: offset, width: 22, height: 3, fill: color, originX: "center", originY: "center", selectable: false })
+                : rect({ left: offset, top: position, width: 3, height: 22, fill: color, originX: "center", originY: "center", selectable: false }));
+        }
+        return items;
+    }
+
+    function laneDividerSolid(long, horizontal, offset, color) {
+        return [horizontal
+            ? rect({ left: 0, top: offset, width: long - 20, height: 2, fill: color, originX: "center", originY: "center", selectable: false })
+            : rect({ left: offset, top: 0, width: 2, height: long - 20, fill: color, originX: "center", originY: "center", selectable: false })];
+    }
+
     function roadEdge(points) {
         return line(points, { stroke: "#f5f7fa", strokeWidth: 3, strokeLineCap: "butt" });
     }
@@ -876,7 +924,7 @@
         object.setCoords();
     }
 
-    function createRoad(horizontal, left, top) {
+    function createRoad(horizontal, left, top, lanes = 2) {
         const long = 470;
         const short = 128;
         const items = [
@@ -884,10 +932,196 @@
             // draw a visible cap across each connector end when road pieces touch.
             rect({ left: 0, top: 0, width: horizontal ? long : short, height: horizontal ? short : long, fill: "#5b6570", originX: "center", originY: "center" }, true),
             horizontal ? roadEdge([-long / 2, -short / 2 + 10, long / 2, -short / 2 + 10]) : roadEdge([-short / 2 + 10, -long / 2, -short / 2 + 10, long / 2]),
-            horizontal ? roadEdge([-long / 2, short / 2 - 10, long / 2, short / 2 - 10]) : roadEdge([short / 2 - 10, -long / 2, short / 2 - 10, long / 2]),
-            ...dashedCenterLines(long, horizontal)
+            horizontal ? roadEdge([-long / 2, short / 2 - 10, long / 2, short / 2 - 10]) : roadEdge([short / 2 - 10, -long / 2, short / 2 - 10, long / 2])
         ];
-        return group(items, horizontal ? "Straight road" : "Vertical road", horizontal ? "road-horizontal" : "road-vertical", left, top, { lockUniScaling: true });
+        if (lanes === 4) {
+            // Two lanes each direction: double solid yellow median, one dashed
+            // white divider splitting each same-direction pair.
+            items.push(
+                ...laneDividerSolid(long, horizontal, -2, "#f8d94f"),
+                ...laneDividerSolid(long, horizontal, 2, "#f8d94f"),
+                ...laneDividerDashes(long, horizontal, -27, "#ffffff"),
+                ...laneDividerDashes(long, horizontal, 27, "#ffffff")
+            );
+        } else if (lanes === 3) {
+            // One lane one direction, two lanes the other: dashed yellow marks the
+            // direction split, dashed white splits the two-lane side.
+            items.push(
+                ...laneDividerDashes(long, horizontal, -18, "#f8d94f"),
+                ...laneDividerDashes(long, horizontal, 18, "#ffffff")
+            );
+        } else {
+            items.push(...dashedCenterLines(long, horizontal));
+        }
+        const laneSuffix = lanes === 4 ? "-4lane" : lanes === 3 ? "-3lane" : "";
+        const name = lanes === 4 ? "Four-Lane Road" : lanes === 3 ? "Three-Lane Road" : (horizontal ? "Straight road" : "Vertical road");
+        const assetType = (horizontal ? "road-horizontal" : "road-vertical") + laneSuffix;
+        return group(items, name, assetType, left, top, { lockUniScaling: true });
+    }
+
+    function bicycleGlyph(cx, cy, color) {
+        const wheelR = 8;
+        const options = { fill: "", stroke: color, strokeWidth: 2, originX: "center", originY: "center" };
+        return [
+            circle({ left: cx - 10, top: cy + 6, radius: wheelR, ...options }),
+            circle({ left: cx + 10, top: cy + 6, radius: wheelR, ...options }),
+            line([cx - 10, cy + 6, cx - 1, cy - 7], { stroke: color, strokeWidth: 2 }),
+            line([cx - 1, cy - 7, cx + 10, cy + 6], { stroke: color, strokeWidth: 2 }),
+            line([cx - 1, cy - 7, cx - 7, cy - 7], { stroke: color, strokeWidth: 2 }),
+            line([cx + 3, cy - 1, cx - 10, cy + 6], { stroke: color, strokeWidth: 2 })
+        ];
+    }
+
+    function diamondGlyph(cx, cy, color) {
+        return [new fabric.Polygon([
+            { x: cx, y: cy - 11 }, { x: cx + 8, y: cy }, { x: cx, y: cy + 11 }, { x: cx - 8, y: cy }
+        ], { fill: "", stroke: color, strokeWidth: 2 })];
+    }
+
+    function createSpecialLaneRoad(kind, left, top) {
+        // Same footprint as the standard straight road (long=470, short=128) so
+        // it snaps to and connects with every other road piece exactly the same
+        // way - only the surface markings differ.
+        const long = 470;
+        const short = 128;
+        const isBus = kind === "bus";
+        const isCycle = kind === "cycle";
+        const laneColor = isBus ? "#7a2e2e" : isCycle ? "#2f7d52" : "#3a4f8c";
+        const names = { bus: "Bus Lane", cycle: "Cycle Lane", hov: "HOV Lane" };
+        const items = [
+            rect({ left: 0, top: 0, width: long, height: short, fill: "#5b6570", originX: "center", originY: "center" }, true),
+            roadEdge([-long / 2, -short / 2 + 10, long / 2, -short / 2 + 10]),
+            roadEdge([-long / 2, short / 2 - 10, long / 2, short / 2 - 10]),
+            // Dedicated lane surface tint occupies the bottom half; the top half
+            // stays a plain general-purpose travel lane.
+            rect({ left: 0, top: 27, width: long - 20, height: 44, fill: laneColor, originX: "center", originY: "center", opacity: .82 }),
+            ...laneDividerSolid(long, true, 0, "#ffffff")
+        ];
+        for (let x = -long / 2 + 60; x < long / 2 - 20; x += 130) {
+            if (isBus) {
+                items.push(new fabric.Text("BUS", { left: x, top: 27, fill: "#ffffff", fontSize: 15, fontWeight: "800", fontFamily: "Arial", originX: "center", originY: "center" }));
+            } else if (isCycle) {
+                items.push(...bicycleGlyph(x, 27, "#ffffff"));
+            } else {
+                items.push(...diamondGlyph(x, 27, "#ffffff"));
+            }
+        }
+        return group(items, names[kind], "road-horizontal-" + kind + "lane", left, top, { lockUniScaling: true });
+    }
+
+    function createMergeRamp(left, top) {
+        // Tapers from full road width down to nothing, representing an on-ramp
+        // or off-ramp merge. Only the wide (west) end connects to other roads -
+        // the narrow end trails off like a real ramp.
+        const long = 400;
+        const wideHalf = 64;
+        const narrowHalf = 10;
+        const pavement = new fabric.Polygon([
+            { x: -long / 2, y: -wideHalf }, { x: -long / 2, y: wideHalf },
+            { x: long / 2, y: narrowHalf }, { x: long / 2, y: -narrowHalf }
+        ], { fill: "#5b6570", originX: "center", originY: "center" });
+        pavement.colorable = true;
+        const items = [
+            pavement,
+            roadEdge([-long / 2, -wideHalf + 10, long / 2, -narrowHalf + 3]),
+            roadEdge([-long / 2, wideHalf - 10, long / 2, narrowHalf - 3]),
+            ...laneDividerDashes(long - 60, true, 0, "#ffffff")
+        ];
+        return group(items, "Merge Lane", "road-horizontal-ramp", left, top, { lockUniScaling: true });
+    }
+
+    function createRoundabout(left, top) {
+        const armHalf = 250;
+        const outerRadius = 170;
+        const innerRadius = 70;
+        const edge = 54;
+        const pavement = "#5b6570";
+        const items = [
+            rect({ left: 0, top: 0, width: 500, height: 128, fill: pavement, originX: "center", originY: "center" }, true),
+            rect({ left: 0, top: 0, width: 128, height: 500, fill: pavement, originX: "center", originY: "center" }, true),
+            circle({ left: 0, top: 0, radius: outerRadius, fill: pavement, originX: "center", originY: "center" }, true),
+            circle({ left: 0, top: 0, radius: innerRadius, fill: "#3f7a4d", stroke: "#2c5636", strokeWidth: 2, originX: "center", originY: "center" }),
+            roadEdge([-armHalf, -edge, -outerRadius, -edge]), roadEdge([outerRadius, -edge, armHalf, -edge]),
+            roadEdge([-armHalf, edge, -outerRadius, edge]), roadEdge([outerRadius, edge, armHalf, edge]),
+            roadEdge([-edge, -armHalf, -edge, -outerRadius]), roadEdge([-edge, outerRadius, -edge, armHalf]),
+            roadEdge([edge, -armHalf, edge, -outerRadius]), roadEdge([edge, outerRadius, edge, armHalf])
+        ];
+        // Dashed circulating-lane divider between the island and the outer edge.
+        const midRadius = (outerRadius + innerRadius) / 2;
+        for (let angle = 0; angle < 360; angle += 20) {
+            const rad = angle * Math.PI / 180;
+            items.push(rect({
+                left: midRadius * Math.cos(rad), top: midRadius * Math.sin(rad),
+                width: 14, height: 3, angle: angle + 90, fill: "#f8d94f", originX: "center", originY: "center"
+            }));
+        }
+        return group(items, "Roundabout", "roundabout", left, top, { lockUniScaling: true });
+    }
+
+    function createCurvedRoad(left, top) {
+        // Quarter-turn bend, curving smoothly from a west-facing arm to a
+        // south-facing arm (an alternative to the sharp-cornered L-road).
+        const armLength = 150;
+        const centerlineRadius = 170;
+        const half = 64;
+        const outerRadius = centerlineRadius + half;
+        const innerRadius = centerlineRadius - half;
+        const pavement = "#5b6570";
+        const arcPath = `M 0 ${-half} A ${outerRadius} ${outerRadius} 0 0 1 ${outerRadius} ${centerlineRadius} L ${innerRadius} ${centerlineRadius} A ${innerRadius} ${innerRadius} 0 0 0 0 ${half} Z`;
+        const bend = new fabric.Path(arcPath, { fill: pavement, originX: "left", originY: "top", left: 0, top: -half });
+        bend.colorable = true;
+        const outerEdgeD = `M 0 ${-half + 10} A ${outerRadius - 10} ${outerRadius - 10} 0 0 1 ${outerRadius - 10} ${centerlineRadius}`;
+        const innerEdgeD = `M 0 ${half - 10} A ${innerRadius + 10} ${innerRadius + 10} 0 0 1 ${innerRadius + 10} ${centerlineRadius}`;
+        const items = [
+            rect({ left: -armLength / 2, top: 0, width: armLength, height: 128, fill: pavement, originX: "center", originY: "center" }, true),
+            rect({ left: centerlineRadius, top: centerlineRadius + armLength / 2, width: 128, height: armLength, fill: pavement, originX: "center", originY: "center" }, true),
+            bend,
+            new fabric.Path(outerEdgeD, { fill: "", stroke: "#f5f7fa", strokeWidth: 3, originX: "left", originY: "top", left: 0, top: -half }),
+            new fabric.Path(innerEdgeD, { fill: "", stroke: "#f5f7fa", strokeWidth: 3, originX: "left", originY: "top", left: 0, top: -half }),
+            roadEdge([-armLength, -half + 10, 0, -half + 10]), roadEdge([-armLength, half - 10, 0, half - 10]),
+            roadEdge([centerlineRadius - half + 10, centerlineRadius, centerlineRadius - half + 10, centerlineRadius + armLength]),
+            roadEdge([centerlineRadius + half - 10, centerlineRadius, centerlineRadius + half - 10, centerlineRadius + armLength])
+        ];
+        return group(items, "Curved Road", "curved-road", left, top, { lockUniScaling: true });
+    }
+
+    function createYIntersection(left, top) {
+        const armLength = 200;
+        const branchAngle = 30;
+        const pavement = "#5b6570";
+        const stem = rect({ left: -armLength / 2, top: 0, width: armLength, height: 128, fill: pavement, originX: "center", originY: "center" }, true);
+        const branchA = rect({ left: 0, top: 0, width: armLength, height: 128, fill: pavement, originX: "left", originY: "center", angle: -branchAngle }, true);
+        const branchB = rect({ left: 0, top: 0, width: armLength, height: 128, fill: pavement, originX: "left", originY: "center", angle: branchAngle }, true);
+        const hub = circle({ left: 0, top: 0, radius: 64, fill: pavement, originX: "center", originY: "center" }, true);
+        return group([stem, branchA, branchB, hub], "Y-Intersection", "y-intersection", left, top, { lockUniScaling: true });
+    }
+
+    function createMedian(left, top) {
+        const width = 40;
+        const length = 200;
+        const items = [
+            rect({ left: 0, top: 0, width, height: length, fill: "#e2e5ea", stroke: "#aeb4bc", strokeWidth: 2, originX: "center", originY: "center" }, true)
+        ];
+        for (let y = -length / 2 + 15; y < length / 2 - 5; y += 24) {
+            items.push(line([-width / 2 + 4, y - 10, width / 2 - 4, y + 10], { stroke: "#c6cbd2", strokeWidth: 3 }));
+        }
+        return group(items, "Median Divider", "median-divider", left, top);
+    }
+
+    function createRailroadTrack(left, top) {
+        const roadWidth = 130;
+        const items = [
+            rect({ left: -18, top: 0, width: 6, height: roadWidth, fill: "#33383f", originX: "center", originY: "center" }, true),
+            rect({ left: 18, top: 0, width: 6, height: roadWidth, fill: "#33383f", originX: "center", originY: "center" }, true)
+        ];
+        for (let y = -roadWidth / 2 + 8; y < roadWidth / 2 - 4; y += 20) {
+            items.push(rect({ left: 0, top: y, width: 50, height: 7, fill: "#8a6b4a", stroke: "#5c4530", strokeWidth: 1, originX: "center", originY: "center" }));
+        }
+        items.push(
+            line([-50, -40, -20, -10], { stroke: "#fff", strokeWidth: 4 }), line([-50, -10, -20, -40], { stroke: "#fff", strokeWidth: 4 }),
+            line([20, 10, 50, 40], { stroke: "#fff", strokeWidth: 4 }), line([20, 40, 50, 10], { stroke: "#fff", strokeWidth: 4 })
+        );
+        return group(items, "Railroad Tracks", "railroad-track", left, top);
     }
 
     function createIntersection(left, top) {
@@ -1585,9 +1819,20 @@
         switch (assetType) {
             case "road-horizontal": return createRoad(true, left, top);
             case "road-vertical": return createRoad(false, left, top);
+            case "road-horizontal-3lane": return createRoad(true, left, top, 3);
+            case "road-horizontal-4lane": return createRoad(true, left, top, 4);
+            case "road-horizontal-buslane": return createSpecialLaneRoad("bus", left, top);
+            case "road-horizontal-cyclelane": return createSpecialLaneRoad("cycle", left, top);
+            case "road-horizontal-hovlane": return createSpecialLaneRoad("hov", left, top);
+            case "road-horizontal-ramp": return createMergeRamp(left, top);
             case "l-road": return createLRoad(left, top);
+            case "curved-road": return createCurvedRoad(left, top);
             case "intersection": return createIntersection(left, top);
+            case "roundabout": return createRoundabout(left, top);
             case "t-junction": return createTJunction(left, top);
+            case "y-intersection": return createYIntersection(left, top);
+            case "median-divider": return createMedian(left, top);
+            case "railroad-track": return createRailroadTrack(left, top);
             case "crosswalk": return createCrosswalk(left, top);
             case "four-way-crosswalk": return createFourWayCrosswalk(left, top);
             case "stop-line": return createStopLine(left, top);
